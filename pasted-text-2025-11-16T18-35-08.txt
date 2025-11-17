@@ -1,0 +1,2570 @@
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+
+// --- ICONS (SVG Path Data) ---
+// A collection of SVG paths used throughout the application.
+const ICONS = {
+    check: "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+    warning: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z",
+    minus: "M18 12.75H6a.75.75 0 010-1.5h12a.75.75 0 010 1.5z",
+    plus: "M12 4.5a.75.75 0 01.75.75v6h6a.75.75 0 010 1.5h-6v6a.75.75 0 01-1.5 0v-6h-6a.75.75 0 010-1.5h6v-6A.75.75 0 0112 4.5z",
+    project: "M2.25 21h19.5a2.25 2.25 0 002.25-2.25V7.5a2.25 2.25 0 00-2.25-2.25H16.5a2.25 2.25 0 01-2.25-2.25V2.25a2.25 2.25 0 00-2.25-2.25h-1.5a2.25 2.25 0 00-2.25 2.25V5.25a2.25 2.25 0 01-2.25 2.25H2.25A2.25 2.25 0 000 9.75v9A2.25 2.25 0 002.25 21z",
+    building: "M3.75 21h16.5a1.5 1.5 0 001.5-1.5v-13.5a1.5 1.5 0 00-1.5-1.5H3.75a1.5 1.5 0 00-1.5 1.5v13.5a1.5 1.5 0 001.5 1.5zM8.25 18.75a.75.75 0 00.75-.75v-3a.75.75 0 00-1.5 0v3a.75.75 0 00.75.75zM12 18.75a.75.75 0 00.75-.75v-3a.75.75 0 00-1.5 0v3a.75.75 0 00.75.75zM15.75 18.75a.75.75 0 00.75-.75v-3a.75.75 0 00-1.5 0v3a.75.75 0 00.75.75z",
+    unit: "M3 5.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75zM3 9.75a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75zM3 14.25a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75zM3 18.75a.75.75 0 01.75-.75h16.5a.75.75 0 010 1.5H3.75a.75.75 0 01-.75-.75z",
+    owner: "M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75a17.933 17.933 0 01-7.499-1.632z",
+    history: "M12 6.042A8.967 8.967 0 003 15a8.967 8.967 0 009 8.958v-2.006A6.967 6.967 0 016 15a6.967 6.967 0 016-6.958v-2.006z",
+    sort: "M3 4.5h14.25a.75.75 0 010 1.5H3a.75.75 0 010-1.5zm0 4.5h14.25a.75.75 0 010 1.5H3a.75.75 0 010-1.5zm0 4.5h14.25a.75.75 0 010 1.5H3a.75.75 0 010-1.5z",
+    sortAsc: "M3 4.5h14.25a.75.75 0 010 1.5H3a.75.75 0 010-1.5zm0 4.5h10.5a.75.75 0 010 1.5H3a.75.75 0 010-1.5zm0 4.5h6.75a.75.75 0 010 1.5H3a.75.75 0 010-1.5z",
+    sortDesc: "M3 4.5h6.75a.75.75 0 010 1.5H3a.75.75 0 010-1.5zm0 4.5h10.5a.75.75 0 010 1.5H3a.75.75 0 010-1.5zm0 4.5h14.25a.75.75 0 010 1.5H3a.75.75 0 010-1.5z",
+    search: "M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 10-4.773-4.773 3.375 3.375 0 004.773 4.773z",
+    xMark: "M6 18L18 6M6 6l12 12",
+    filter: "M3 4.5h18a.75.75 0 010 1.5H3a.75.75 0 010-1.5zm3 4.5h12a.75.75 0 010 1.5H6a.75.75 0 010-1.5zm3 4.5h6a.75.75 0 010 1.5H9a.75.75 0 010-1.5z",
+    chart: "M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z",
+    users: "M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z",
+    document: "M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z",
+    edit: "M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10",
+    calendar: "M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0 2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0 2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0 2.25h.008v.008H7.5v-.008zm6.75-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008V15zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008H16.5v-.008zm0 2.25h.008v.008H16.5V15zm0 2.25h.008v.008H16.5v-.008z",
+    clock: "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z",
+    columns: "M9 4.5v15m6-15v15M3 12h18",
+    trash: "M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0",
+    sun: "M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-6.364-.386l1.591-1.591M3 12h2.25m.386-6.364l1.591 1.591M12 6.75a5.25 5.25 0 100 10.5 5.25 5.25 0 000-10.5z",
+    moon: "M12 3a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0112 3zm-3.863.863a.75.75 0 011.06 0l1.06 1.06a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zM5.25 9a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 015.25 9zm.863 3.863a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM12 21a.75.75 0 01-.75-.75v-1.5a.75.75 0 011.5 0v1.5A.75.75 0 0112 21zm3.863-.863a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM18.75 9a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5a.75.75 0 01.75.75zm-.863-3.863a.75.75 0 010-1.06l1.06-1.06a.75.75 0 111.06 1.06l-1.06 1.06a.75.75 0 01-1.06 0zM12 18a6 6 0 100-12 6 6 0 000 12z",
+    balance: "M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.05 48.05 0 0012 4.5c-2.291 0-4.545.16-6.75.47v15.086A47.995 47.995 0 0112 19.5c2.291 0 4.545.16 6.75.47V4.97z",
+    upload: "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12l-3-3m0 0l-3 3m3-3v6m-1.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z",
+    arrowRight: "M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3",
+    arrowLeft: "M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18",
+    download: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3",
+    import: "M12 3v4.5m0 0V21m0-13.5L7.5 12m4.5-4.5l4.5 4.5",
+    timeline: "M17.25 6.75h-10.5m0 4.5h10.5m-10.5 4.5h10.5M3 18.75V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25v13.5A2.25 2.25 0 0118.75 21H5.25A2.25 2.25 0 013 18.75z",
+    notification: "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
+    assignment: "M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244",
+    arrowsRightLeft: "M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5",
+    // NEW ICON for the Strategic Dashboard
+    strategy: "M3.75 3v11.25A2.25 2.25 0 006 16.5h12A2.25 2.25 0 0020.25 14.25V3M3.75 3A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75zM12 9v6m-3-3h6"
+};
+
+// --- GENERIC UI COMPONENTS ---
+const Icon = ({ path, className = "w-4 h-4 transition-transform duration-200 hover:scale-110", ...props }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className} {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d={path} />
+    </svg>
+);
+
+// --- ACTIVITY LOG ---
+const activityLog = [];
+const logActivity = (action, focusLevel, itemId, details = {}, user = 'User') => {
+    activityLog.unshift({
+        id: Date.now(),
+        timestamp: new Date(),
+        action,
+        focusLevel,
+        itemId,
+        user,
+        ...details
+    });
+    if (activityLog.length > 100) activityLog.pop();
+};
+
+// --- DATA STRUCTURE & MOCK DATA GENERATION ---
+
+const createOwnerData = (subplot, {
+    id, name = 'בעלים חדש', idNumber, ownerType = 'private', address = 'כתובת טרם הוזנה',
+    legalSignatures = { contract: 'X', po_tax: 'X', po_general: 'X', IBAmatch: 'pending' },
+    financialDocs = { id_card: 'missing', rights_approval: 'missing', mortgage_report: 'na', liens: 'unknown' },
+    contact = { phone: `052-${Math.floor(1000000 + Math.random() * 9000000)}`, email: 'new@email.com', preferredContactMethod: 'phone' },
+    socio = { profile: 'גר בדירה', age: 50, housingOwenershipStatus: 'self_owned', maritalStatus: 'married', debtLevel: 'no_debt', satisfaction: 'satisfied' },
+    communicationLog = { lastContact: new Date().toISOString().split('T')[0], summary: 'נוצר קשר ראשוני' },
+    legalHistory = { hasHistory: false, details: '' },
+    sellingStatus = 'not-selling', buyingStatus = 'not-buying',
+    hasActiveDispute = false,
+    requiredDocuments = {
+        contract: { status: 'pending', dateRequired: '2025-12-31', notes: 'הסכם' },
+        powerOfAttorney: { status: 'pending', dateRequired: '2025-12-31', notes: 'יפוי כוח' },
+    },
+    notifications = []
+}) => ({
+    id: id || `O${Date.now()}${Math.floor(Math.random() * 1000)}`,
+    name,
+    idNumber: idNumber || `00000000${Math.floor(Math.random() * 10)}`.slice(-9),
+    ownerType,
+    address,
+    legalSignatures,
+    financialDocs,
+    contact,
+    socio,
+    communicationLog,
+    legalHistory,
+    subplot,
+    sellingStatus,
+    buyingStatus,
+    hasActiveDispute,
+    requiredDocuments,
+    notifications
+});
+
+const getCalculatedSignatureStatus = (owner) => {
+    if (!owner) return 'missing';
+    const signatureDocs = [
+        ...Object.values(owner.legalSignatures || {}),
+        ...Object.values(owner.requiredDocuments || {}).map(doc => doc.status)
+    ];
+
+    const positive = ['V', 'signed', 'ok'];
+    const negative = ['X', 'missing', 'rejected'];
+    const pending = ['pending'];
+
+    if (signatureDocs.length === 0) return 'pending';
+    if (signatureDocs.every(s => positive.includes(s))) return 'signed';
+    if (signatureDocs.some(s => negative.includes(s))) return 'rejected';
+    if (signatureDocs.some(s => pending.includes(s))) return 'pending';
+    return 'pending';
+};
+
+const PROJECT_DATA = {
+    projectName: "ירושלים 2א', חדרה",
+    name: "ירושלים 2א', חדרה",
+    projectType: 'פינוי-בינוי',
+    projectStatus: 'in-progress',
+    location: {
+        address: 'רחוב ירושלים 2, חדרה',
+        neighborhood: 'מרכז העיר',
+        block: '10234',
+        settlement: 'חדרה',
+        accessibility: 'גבוהה',
+    },
+    professionals: {
+        developer: { name: 'יזם נדל"ן בע"מ', phone: '052-9999999', email: 'developer@example.com' },
+        legalAdvisor: { name: 'עו"ד לוי', phone: '052-8888888', email: 'lawyer@example.com' },
+        architect: { name: 'אדר. שמיר', phone: '052-7777777', email: 'architect@example.com' },
+        engineer: { name: 'מהנדס כהן', phone: '052-6666666', email: 'engineer@example.com' },
+    },
+    legalRequirements: {
+        specialMajorityRequired: true,
+        apartmentThresholdGeneral: 2 / 3,
+        apartmentThresholdBuilding: 3 / 5,
+        commonPropertyThreshold: 1 / 2,
+        section4OwnershipLimit: 0.30,
+        section4ExcessFactor: 1 / 3
+    },
+    progress: {
+        numExistingUnits: 30,
+        numPlannedUnits: 120,
+        projectedCompletionDate: '2028-12-31',
+        planningApprovalStatus: 'approved',
+        budgetStatus: 'on-track',
+        currentPhase: 'licensing',
+        estimatePlaning: '2024-12-31',
+        estimateLicensing: '2025-12-31',
+        estimateConstruction: '2028-12-31',
+    },
+    notifications: [],
+    timeline: [
+        { date: '2024-01-01', event: 'תחילת פרויקט' },
+        { date: '2025-06-01', event: 'אישור תכנוני' },
+        { date: '2028-12-31', event: 'סיום צפוי' }
+    ],
+    buildings: [
+        {
+            id: 'B1',
+            buildingNumber: '2א',
+            name: 'מבנה 1 (בית משותף)',
+            gush: '10234',
+            helka: '78',
+            buildingType: 'מגורים',
+            constructionStatus: 'not-started',
+            physicalCharacteristics: {
+                age: 45,
+                numFloors: 3,
+                numEntrances: 1,
+            },
+            condominiumInfo: {
+                expectedUnits: 6,
+                actualUnits: 6,
+                votingSplit: 'לפי חלוקה שווה',
+                commonPropertyAreas: 'חניה, גינה, חדר מדרגות',
+                activeResidentsCommittee: { exists: true, members: [{ name: 'יוסי כהן', phone: '052-5555555', role: 'יו"ר' }] },
+            },
+            units: [
+                {
+                    id: 'U1',
+                    subplot: 1,
+                    propertyType: 'דירת מגורים',
+                    identification: {
+                        fullAddress: 'ירושלים 2א/1, חדרה',
+                        block: '10234',
+                        parcel: '78',
+                        subParcel: '1',
+                    },
+                    physical: {
+                        areaSqM_gross: 100,
+                        areaSqM_net: 90,
+                        numRooms: 4,
+                        floor: 1,
+                        propertyCondition: 'טוב',
+                        lastRenovationYear: 2015,
+                        hasBuildingViolations: false,
+                        parking: { exists: true, count: 1, type: 'צמודה' },
+                        storage: { exists: false, areaSqM: null },
+                        balcony: { exists: true, areaSqM: 12 },
+                        garden: { exists: false },
+                        attachedRoof: { exists: false },
+                    },
+                    legal: {
+                        commonPropertyPercentage: 15,
+                        registeredOwnership: 'בעלות מלאה',
+                        warningNotes: '',
+                        liens: 'נקי',
+                    },
+                    status: {
+                        currentResidentStatus: 'owner',
+                        evacuationDate: '2026-01-15',
+                        compensationAgreementStatus: 'signed',
+                    },
+                    requiredDocuments: {
+                        tabuExtract: { status: 'ok', notes: '', date: '2025-06-01' },
+                        leaseContract: { status: 'na', notes: '', date: null },
+                        buildingPermit: { status: 'ok', notes: '', date: '2025-06-02' }
+                    },
+                    owners: [
+                        createOwnerData(1, {
+                            id: 'O1', name: "וייסמן אילנה", idNumber: '012345678',
+                            legalSignatures: { contract: 'V', po_tax: 'V', po_general: 'V', IBAmatch: 'ok' },
+                            financialDocs: { id_card: 'ok', rights_approval: 'ok', mortgage_report: 'na', liens: 'ok' },
+                            requiredDocuments: { contract: { status: 'signed' }, powerOfAttorney: { status: 'signed' } }
+                        }),
+                    ]
+                },
+                {
+                    id: 'U2', subplot: 2, propertyType: 'דירת מגורים', identification: { fullAddress: 'ירושלים 2א/2, חדרה', block: '10234', parcel: '78', subParcel: '2', },
+                    physical: { areaSqM_gross: 95, areaSqM_net: 85, numRooms: 4, floor: 1, propertyCondition: 'טוב', hasBuildingViolations: false, parking: { exists: true, count: 1, type: 'צמודה' }, storage: { exists: true, areaSqM: 3 }, balcony: { exists: true, areaSqM: 10 } },
+                    legal: { commonPropertyPercentage: 15, warningNotes: '', liens: 'נקי' }, status: { currentResidentStatus: 'owner', evacuationDate: '2026-02-15', compensationAgreementStatus: 'signed', },
+                    requiredDocuments: { tabuExtract: { status: 'ok' }, leaseContract: { status: 'na' }, buildingPermit: { status: 'ok' } },
+                    owners: [
+                        createOwnerData(2, { id: 'O2', name: "כהן מרים", idNumber: '123456780', legalSignatures: { contract: 'V', po_tax: 'V', po_general: 'V' }, requiredDocuments: { contract: { status: 'signed' }, powerOfAttorney: { status: 'signed' } } }),
+                    ]
+                },
+                {
+                    id: 'U3', subplot: 3, propertyType: 'דירת מגורים', identification: { fullAddress: 'ירושלים 2א/3, חדרה', block: '10234', parcel: '78', subParcel: '3', },
+                    physical: { areaSqM_gross: 85, areaSqM_net: 75, numRooms: 3, floor: 2, propertyCondition: 'דורש שיפוץ', hasBuildingViolations: true, parking: { exists: true, count: 1, type: 'משותפת' }, storage: { exists: true, areaSqM: 5 }, balcony: { exists: false } },
+                    legal: { commonPropertyPercentage: 15, warningNotes: 'רישום משכנתא', liens: 'קיים' }, status: { currentResidentStatus: 'owner', evacuationDate: '2025-05-01', compensationAgreementStatus: 'pending', },
+                    requiredDocuments: { tabuExtract: { status: 'missing' }, leaseContract: { status: 'na' }, buildingPermit: { status: 'missing' } },
+                    owners: [
+                        createOwnerData(3, { id: 'O3', name: "לוי דוד", idNumber: '234567891', legalSignatures: { contract: 'X', po_tax: 'X', po_general: 'X' }, hasActiveDispute: true, requiredDocuments: { contract: { status: 'missing' }, powerOfAttorney: { status: 'missing' } } }),
+                    ]
+                },
+                {
+                    id: 'U4', subplot: 4, propertyType: 'דירת מגורים', identification: { fullAddress: 'ירושלים 2א/4, חדרה', block: '10234', parcel: '78', subParcel: '4' },
+                    physical: { areaSqM_gross: 110, areaSqM_net: 100, numRooms: 4, floor: 2, propertyCondition: 'מצוין', hasBuildingViolations: false, parking: { exists: true, count: 1, type: 'צמודה' }, storage: { exists: false }, balcony: { exists: true, areaSqM: 14 } },
+                    legal: { commonPropertyPercentage: 15, warningNotes: '', liens: 'נקי' }, status: { currentResidentStatus: 'owner', evacuationDate: '2025-08-01', compensationAgreementStatus: 'pending' },
+                    requiredDocuments: { tabuExtract: { status: 'ok' }, leaseContract: { status: 'na' }, buildingPermit: { status: 'ok' } },
+                    owners: [
+                        createOwnerData(4, { id: 'O4', name: "אביטבול שרה", idNumber: '345678902', legalSignatures: { contract: 'V', po_tax: 'X', po_general: 'X' }, requiredDocuments: { contract: { status: 'signed' }, powerOfAttorney: { status: 'pending' } } })
+                    ]
+                },
+                {
+                    id: 'U5', subplot: 5, propertyType: 'דירת מגורים', identification: { fullAddress: 'ירושלים 2א/5, חדרה', block: '10234', parcel: '78', subParcel: '5' },
+                    physical: { areaSqM_gross: 120, areaSqM_net: 110, numRooms: 5, floor: 3, propertyCondition: 'מצוין', hasBuildingViolations: false, parking: { exists: true, count: 2, type: 'צמודה' }, storage: { exists: true, areaSqM: 8 }, balcony: { exists: true, areaSqM: 20 } },
+                    legal: { commonPropertyPercentage: 20, warningNotes: '', liens: 'נקי' }, status: { currentResidentStatus: 'owner', evacuationDate: '2025-12-01', compensationAgreementStatus: 'signed' },
+                    requiredDocuments: { tabuExtract: { status: 'ok' }, leaseContract: { status: 'na' }, buildingPermit: { status: 'ok' } },
+                    owners: [
+                        createOwnerData(5, { id: 'O5', name: "פרץ משה", idNumber: '456789013', legalSignatures: { contract: 'V', po_tax: 'V', po_general: 'V' }, financialDocs: { mortgage_report: 'exists' }, requiredDocuments: { contract: { status: 'signed' }, powerOfAttorney: { status: 'signed' } } }),
+                        createOwnerData(5, { id: 'O6', name: "פרץ דבורה", idNumber: '567890124', legalSignatures: { contract: 'V', po_tax: 'V', po_general: 'V' }, financialDocs: { mortgage_report: 'exists' }, requiredDocuments: { contract: { status: 'signed' }, powerOfAttorney: { status: 'signed' } } })
+                    ]
+                },
+                {
+                    id: 'U6', subplot: 6, propertyType: 'דירת מגורים', identification: { fullAddress: 'ירושלים 2א/6, חדרה', block: '10234', parcel: '78', subParcel: '6' },
+                    physical: { areaSqM_gross: 90, areaSqM_net: 80, numRooms: 3, floor: 3, propertyCondition: 'טוב', hasBuildingViolations: false, parking: { exists: true, count: 1, type: 'משותפת' }, storage: { exists: true, areaSqM: 4 }, balcony: { exists: true, areaSqM: 8 } },
+                    legal: { commonPropertyPercentage: 20, warningNotes: '', liens: 'נקי' }, status: { currentResidentStatus: 'owner', evacuationDate: '2026-01-01', compensationAgreementStatus: 'pending' },
+                    requiredDocuments: { tabuExtract: { status: 'ok' }, leaseContract: { status: 'na' }, buildingPermit: { status: 'ok' } },
+                    owners: [
+                        createOwnerData(6, { id: 'O8', name: "וייסמן אילנה", idNumber: '012345678', legalSignatures: { contract: 'V', po_tax: 'V', po_general: 'V' }, socio: { profile: 'משקיע', age: 68 }, sellingStatus: 'in-process', requiredDocuments: { contract: { status: 'signed' }, powerOfAttorney: { status: 'signed' } } })
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'B2', buildingNumber: '2ב', name: 'מבנה 2 (קטן)', gush: '10234', helka: '79', buildingType: 'מגורים', constructionStatus: 'not-started',
+            physicalCharacteristics: { age: 60, numFloors: 2, numEntrances: 1 },
+            condominiumInfo: { expectedUnits: 3, actualUnits: 3, votingSplit: 'לפי חלוקה שווה', commonPropertyAreas: 'חדר מדרגות', activeResidentsCommittee: { exists: false, members: [] } },
+            units: [
+                {
+                    id: 'U7', subplot: 7, propertyType: 'דירת מגורים', identification: { fullAddress: 'ירושלים 2ב/1, חדרה', block: '10234', parcel: '79', subParcel: '1' },
+                    physical: { areaSqM_gross: 80, areaSqM_net: 70, numRooms: 3, floor: 1, propertyCondition: 'סביר', hasBuildingViolations: false, parking: { exists: false }, storage: { exists: false }, balcony: { exists: false } },
+                    legal: { commonPropertyPercentage: 33.33, warningNotes: '', liens: 'נקי' }, status: { currentResidentStatus: 'owner', evacuationDate: '2026-03-01', compensationAgreementStatus: 'signed' },
+                    requiredDocuments: { tabuExtract: { status: 'ok' }, leaseContract: { status: 'na' }, buildingPermit: { status: 'ok' } },
+                    owners: [
+                        createOwnerData(7, { id: 'O7', name: "גולן רותם", idNumber: '678901235', legalSignatures: { contract: 'V', po_tax: 'V', po_general: 'V' }, requiredDocuments: { contract: { status: 'signed' }, powerOfAttorney: { status: 'signed' } } })
+                    ]
+                }
+            ]
+        },
+        {
+            id: 'B3', buildingNumber: '2ג', name: 'מבנה 3 (גדול)', gush: '10234', helka: '80', buildingType: 'מגורים ומסחר', constructionStatus: 'in-progress',
+            physicalCharacteristics: { age: 35, numFloors: 5, numEntrances: 2 },
+            condominiumInfo: { expectedUnits: 20, actualUnits: 18, votingSplit: 'לפי חלוקה שווה', commonPropertyAreas: 'חניה, גינה, חדר מדרגות', activeResidentsCommittee: { exists: true, members: [{ name: 'אברהם לוי', phone: '052-4444444', role: 'יו"ר' }] } },
+            units: [
+                // Example unit for B3
+                {
+                    id: 'U8', subplot: 8, propertyType: 'חנות מסחרית', identification: { fullAddress: 'ירושלים 2ג/1, חדרה', block: '10234', parcel: '80', subParcel: '1' },
+                    physical: { areaSqM_gross: 50, areaSqM_net: 45, numRooms: 1, floor: 0, propertyCondition: 'טוב', hasBuildingViolations: false, parking: { exists: false }, storage: { exists: true, areaSqM: 10 }, balcony: { exists: false } },
+                    legal: { commonPropertyPercentage: 10, warningNotes: '', liens: 'נקי' }, status: { currentResidentStatus: 'tenant', evacuationDate: '2026-04-01', compensationAgreementStatus: 'pending' },
+                    requiredDocuments: { tabuExtract: { status: 'ok' }, leaseContract: { status: 'ok' }, buildingPermit: { status: 'ok' } },
+                    owners: [
+                        createOwnerData(8, { id: 'O9', name: "עסקים בע\"מ", idNumber: '512345678', ownerType: 'company', legalSignatures: { contract: 'X', po_tax: 'X', po_general: 'X' }, requiredDocuments: { contract: { status: 'pending' }, powerOfAttorney: { status: 'pending' } } })
+                    ]
+                }
+            ]
+        }
+    ],
+    unassignedUnits: [],
+    unassignedOwners: [],
+};
+
+// --- SPECIAL MAJORITY CALCULATOR (Based on Israeli Law) ---
+const SpecialMajorityCalculator = {
+    // Constants for Agreement Majority
+    AGREEMENT_CLUSTER_APARTMENT_THRESHOLD: 2 / 3,
+    AGREEMENT_BUILDING_APARTMENT_THRESHOLD_GENERAL: 3 / 5,
+    AGREEMENT_BUILDING_COMMON_PROPERTY_THRESHOLD: 1 / 2,
+
+    // Constants for Economic Feasibility Majority
+    FEASIBILITY_BUILDING_APARTMENT_THRESHOLD: 2 / 5,
+    FEASIBILITY_BUILDING_COMMON_PROPERTY_THRESHOLD: 2 / 5,
+
+    // Section 4 constants (for owners with large holdings)
+    SECTION_4_OWNERSHIP_LIMIT: 0.30,
+    SECTION_4_EXCESS_FACTOR: 1 / 3,
+
+    EPSILON: 1e-9,
+
+    analyze(buildingsData, scenarioSignedOwners = new Set()) {
+        const allClusterUnits = buildingsData.flatMap(b => b.units);
+        if (allClusterUnits.length === 0) return this.getEmptyResults();
+
+        let totalClusterSignedApartments = 0;
+        const buildingDetails = {};
+
+        buildingsData.forEach(building => {
+            const totalApartments = building.units.length;
+            const uniqueOwners = new Set(building.units.flatMap(u => u.owners.map(o => o.idNumber))).size;
+
+            const signedUnitsInBuilding = new Set();
+            let signedCommonProperty = 0;
+
+            building.units.forEach(unit => {
+                const isSigned = unit.owners.some(owner => scenarioSignedOwners.has(owner.idNumber));
+                if (isSigned) {
+                    signedUnitsInBuilding.add(unit.id);
+                    signedCommonProperty += (unit.legal.commonPropertyPercentage || 0);
+                }
+            });
+
+            totalClusterSignedApartments += signedUnitsInBuilding.size;
+
+            const totalCommonProperty = building.units.reduce((sum, unit) => sum + (unit.legal.commonPropertyPercentage || 0), 0);
+
+            // --- Agreement Majority Calculation ---
+            let agreementApartmentCheckMet = false;
+            if (totalApartments >= 6) {
+                agreementApartmentCheckMet = (signedUnitsInBuilding.size / totalApartments) >= (this.AGREEMENT_BUILDING_APARTMENT_THRESHOLD_GENERAL - this.EPSILON);
+            } else if ((totalApartments === 4 || totalApartments === 5) && uniqueOwners > 2) {
+                agreementApartmentCheckMet = signedUnitsInBuilding.size >= 3;
+            }
+            const agreementCommonPropertyCheckMet = totalCommonProperty > 0 && (signedCommonProperty / totalCommonProperty) > (this.AGREEMENT_BUILDING_COMMON_PROPERTY_THRESHOLD - this.EPSILON);
+
+            // --- Feasibility Majority Calculation ---
+            const feasibilityApartmentCheckMet = (signedUnitsInBuilding.size / totalApartments) >= (this.FEASIBILITY_BUILDING_APARTMENT_THRESHOLD - this.EPSILON);
+            const feasibilityCommonPropertyCheckMet = totalCommonProperty > 0 && (signedCommonProperty / totalCommonProperty) >= (this.FEASIBILITY_BUILDING_COMMON_PROPERTY_THRESHOLD - this.EPSILON);
+
+            buildingDetails[building.id] = {
+                isValidForCalc: totalApartments >= 4,
+                signedApartments: signedUnitsInBuilding.size,
+                totalApartments,
+                signedCommonProperty,
+                totalCommonProperty,
+                agreement: {
+                    apartment: { met: agreementApartmentCheckMet, actual: signedUnitsInBuilding.size, required: totalApartments < 6 ? 3 : Math.ceil(totalApartments * this.AGREEMENT_BUILDING_APARTMENT_THRESHOLD_GENERAL) },
+                    commonProperty: { met: agreementCommonPropertyCheckMet, actual: signedCommonProperty, required: totalCommonProperty * this.AGREEMENT_BUILDING_COMMON_PROPERTY_THRESHOLD },
+                    overallMet: totalApartments >= 4 && agreementApartmentCheckMet && agreementCommonPropertyCheckMet
+                },
+                feasibility: {
+                    apartment: { met: feasibilityApartmentCheckMet, actual: signedUnitsInBuilding.size, required: Math.ceil(totalApartments * this.FEASIBILITY_BUILDING_APARTMENT_THRESHOLD) },
+                    commonProperty: { met: feasibilityCommonPropertyCheckMet, actual: signedCommonProperty, required: totalCommonProperty * this.FEASIBILITY_BUILDING_COMMON_PROPERTY_THRESHOLD },
+                    overallMet: totalApartments >= 4 && feasibilityApartmentCheckMet && feasibilityCommonPropertyCheckMet
+                }
+            };
+        });
+
+        const validBuildingsForCalc = buildingsData.filter(b => (buildingDetails[b.id]?.isValidForCalc));
+        const agreementClusterApartmentMet = allClusterUnits.length > 0 ? (totalClusterSignedApartments / allClusterUnits.length) >= (this.AGREEMENT_CLUSTER_APARTMENT_THRESHOLD - this.EPSILON) : false;
+        const allValidBuildingsAgreementMet = validBuildingsForCalc.length > 0 && validBuildingsForCalc.every(b => buildingDetails[b.id].agreement.overallMet);
+
+        return {
+            cluster: {
+                agreement: {
+                    apartment: { met: agreementClusterApartmentMet, actual: totalClusterSignedApartments, required: Math.ceil(allClusterUnits.length * this.AGREEMENT_CLUSTER_APARTMENT_THRESHOLD) },
+                    overallMet: agreementClusterApartmentMet && allValidBuildingsAgreementMet
+                },
+                totalApartments: allClusterUnits.length,
+            },
+            buildings: buildingDetails
+        };
+    },
+    getEmptyResults() {
+        return { cluster: { agreement: { apartment: {}, overallMet: false }, totalApartments: 0 }, buildings: {} };
+    }
+};
+
+
+// --- UTILITY FUNCTIONS ---
+const getNestedValue = (obj, path) => {
+    if (!path || !obj) return undefined;
+    return path.split('.').reduce((o, key) => (o && o[key] !== undefined) ? o[key] : undefined, obj);
+}
+
+const setNestedValue = (obj, path, value) => {
+    const keys = path.split('.');
+    const lastKey = keys.pop();
+    const target = keys.reduce((o, key) => {
+        if (o[key] === undefined || o[key] === null || typeof o[key] !== 'object') {
+            o[key] = {};
+        }
+        return o[key];
+    }, obj);
+
+    let finalValue = value;
+    if (typeof value === 'string') {
+        if (value.toLowerCase() === 'true') finalValue = true;
+        else if (value.toLowerCase() === 'false') finalValue = false;
+        else if (!isNaN(value) && value.trim() !== '' && !isNaN(parseFloat(value))) finalValue = parseFloat(value);
+    }
+
+    target[lastKey] = finalValue;
+};
+
+const deepMerge = (target, source) => {
+    for (const key in source) {
+        if (source[key] instanceof Object && target[key] instanceof Object) {
+            deepMerge(target[key], source[key]);
+        } else {
+            target[key] = source[key];
+        }
+    }
+    return target;
+};
+
+
+// New function to convert array of objects to CSV string
+const unparseCsv = (data) => {
+    if (!data || data.length === 0) {
+        return '';
+    }
+
+    // Helper to flatten nested objects and get all unique keys from the entire dataset
+    const getAllKeys = (obj, prefix = '') => {
+        return Object.keys(obj).reduce((acc, k) => {
+            const pre = prefix.length ? prefix + '.' : '';
+            if (obj[k] && typeof obj[k] === 'object' && !Array.isArray(obj[k])) {
+                Object.assign(acc, getAllKeys(obj[k], pre + k));
+            } else {
+                acc[pre + k] = true;
+            }
+            return acc;
+        }, {});
+    };
+
+    const allKeysObject = data.reduce((acc, row) => Object.assign(acc, getAllKeys(row)), {});
+    const headers = Object.keys(allKeysObject);
+    const csvRows = [headers.join(',')];
+
+    data.forEach(row => {
+        const values = headers.map(header => {
+            let value = getNestedValue(row, header);
+            if (value === null || value === undefined) {
+                value = '';
+            }
+            const stringValue = String(value);
+            if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+        });
+        csvRows.push(values.join(','));
+    });
+
+    return csvRows.join('\n');
+};
+
+// New function to convert CSV string to array of objects
+const parseCsv = (csvString) => {
+    const lines = csvString.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const data = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i]) continue;
+
+        const values = lines[i].split(',');
+        const obj = {};
+        headers.forEach((header, index) => {
+            if (values[index] !== undefined) {
+                let value = values[index].trim();
+                if (value.startsWith('"') && value.endsWith('"')) {
+                    value = value.slice(1, -1).replace(/""/g, '"');
+                }
+                setNestedValue(obj, header, value);
+            }
+        });
+        data.push(obj);
+    }
+    return data;
+};
+
+
+// --- UI COMPONENTS ---
+
+const DraggableItem = ({ item, type }) => {
+    const handleDragStart = (e) => {
+        e.dataTransfer.setData('application/json', JSON.stringify({ id: item.id, type }));
+        e.currentTarget.classList.add('opacity-50', 'bg-blue-100');
+    };
+
+    const handleDragEnd = (e) => {
+        e.currentTarget.classList.remove('opacity-50', 'bg-blue-100');
+    };
+
+    const itemIcons = {
+        unit: ICONS.unit,
+        owner: ICONS.owner
+    };
+
+    return (
+        <div
+            draggable
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            className="flex items-center gap-2 p-2 bg-white dark:bg-slate-700 rounded-lg shadow-sm cursor-move mb-2 border-l-4 border-slate-300"
+        >
+            <Icon path={itemIcons[type]} className="w-5 h-5 text-slate-500" />
+            <div className="flex-grow">
+                <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{item.name || item.identification.fullAddress}</p>
+                 {item.idNumber && <p className="text-xs text-slate-500 font-mono">{item.idNumber}</p>}
+            </div>
+        </div>
+    );
+};
+
+const DropZone = ({ onDrop, children, className, acceptedTypes, zoneId, zoneType }) => {
+    const [isOver, setIsOver] = useState(false);
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('application/json'));
+            if (acceptedTypes.includes(data.type)) {
+                setIsOver(true);
+                e.dataTransfer.dropEffect = 'move';
+            } else {
+                e.dataTransfer.dropEffect = 'none';
+            }
+        } catch (error) {
+            e.dataTransfer.dropEffect = 'none';
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsOver(false);
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('application/json'));
+            if (acceptedTypes.includes(data.type)) {
+                onDrop({
+                    draggedItemId: data.id,
+                    draggedItemType: data.type,
+                    targetZoneId: zoneId,
+                    targetZoneType: zoneType,
+                });
+            }
+        } catch (error) {
+            console.error("Drop error:", error);
+        }
+    };
+
+    return (
+        <div
+            onDragOver={handleDragOver}
+            onDragLeave={() => setIsOver(false)}
+            onDrop={handleDrop}
+            className={`transition-colors duration-200 rounded-lg ${className} ${isOver ? 'bg-blue-100 dark:bg-blue-900/50 ring-2 ring-blue-500' : ''}`}
+        >
+            {children}
+        </div>
+    );
+};
+
+const statusMap = {
+    V: { text: "חתום", color: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300", icon: ICONS.check },
+    X: { text: "לא חתום", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300", icon: ICONS.warning },
+    ok: { text: "תקין", color: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300", icon: ICONS.check },
+    missing: { text: "חסר", color: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300", icon: ICONS.warning },
+    exists: { text: "קיים", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300", icon: ICONS.check },
+    unknown: { text: "לא ידוע", color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300", icon: ICONS.warning },
+    na: { text: "ל/ר", color: "bg-gray-100 text-gray-500 dark:bg-slate-700 dark:text-slate-400" },
+    none: { text: "ללא", color: "bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300" },
+    owner: { text: 'בעלים', color: 'bg-sky-100 text-sky-800 dark:bg-sky-900/50 dark:text-sky-300' },
+    vacant: { text: 'פנוי', color: 'bg-gray-200 text-gray-800 dark:bg-slate-600 dark:text-slate-200' },
+    'on-track': { text: 'במסגרת', color: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' },
+    approved: { text: 'מאושר', color: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' },
+    failing: { text: 'לא עומד', color: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300' },
+    invalid: { text: 'לא רלוונטי', color: 'bg-gray-200 text-gray-800 dark:bg-slate-600 dark:text-slate-200' },
+    'not-started': { text: 'טרם החל', color: 'bg-gray-200 text-gray-800 dark:bg-slate-600 dark:text-slate-200' },
+    pending: { text: 'בטיפול', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' },
+    signed: { text: 'חתום', color: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' },
+    rejected: { text: 'סורב/נדחה', color: 'bg-red-200 text-red-800 dark:bg-red-900/50 dark:text-red-300' },
+    phone: { text: 'טלפון', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' },
+    email: { text: 'אימייל', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300' },
+    whatsapp: { text: 'Whatsapp', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300' },
+    tenant: { text: 'שוכר', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300' },
+    'not-selling': { text: 'לא למכירה', color: 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300' },
+    'in-process': { text: 'בתהליך', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' },
+    sold: { text: 'נמכר', color: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' },
+    completed: { text: 'הושלם', color: 'bg-blue-200 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' },
+    'in-progress': { text: 'בתהליך', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' },
+    licensing: { text: 'רישוי', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300' },
+};
+
+const StatusCell = ({ status, textOverride, editable = false, onEdit = null, tooltip = '' }) => {
+    const currentStatus = statusMap[status] || { text: status, color: "bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-200" };
+
+    if (editable && onEdit) {
+        return (
+            <td className="px-3 py-2 text-sm whitespace-nowrap" title={tooltip}>
+                <button
+                    onClick={onEdit}
+                    className={`inline-flex items-center justify-center gap-1.5 w-full min-w-[90px] px-2 py-1.5 rounded-md font-semibold text-xs ${currentStatus.color} hover:ring-2 hover:ring-blue-500 dark:hover:ring-sky-400 cursor-pointer transition-all duration-200 hover:shadow-md`}
+                >
+                    {currentStatus.icon && <Icon path={currentStatus.icon} className="w-3.5 h-3.5" />}
+                    <span className="truncate">{textOverride || currentStatus.text}</span>
+                    <Icon path={ICONS.edit} className="w-3 h-3 opacity-60" />
+                </button>
+            </td>
+        );
+    }
+
+    return (
+        <td className="px-3 py-2 text-sm whitespace-nowrap" title={tooltip}>
+            <span className={`inline-flex items-center justify-center gap-1.5 w-full min-w-[90px] px-2 py-1.5 rounded-md font-semibold text-xs ${currentStatus.color} transition-all duration-200`}>
+                {currentStatus.icon && <Icon path={currentStatus.icon} className="w-3.5 h-3.5" />}
+                <span className="truncate">{textOverride || currentStatus.text}</span>
+            </span>
+        </td>
+    );
+};
+
+const EditableCell = ({ item, itemType, column, onSave, className = '' }) => {
+    const value = getNestedValue(item, column.key);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState(value);
+    const inputRef = useRef(null);
+
+    useEffect(() => {
+        if (isEditing && inputRef.current) {
+            inputRef.current.focus();
+            if (column.type === 'text' || column.type === 'number') {
+                inputRef.current.select();
+            }
+        }
+    }, [isEditing, column.type]);
+
+    useEffect(() => {
+        setEditValue(value);
+    }, [value]);
+
+    const handleSave = () => {
+        if (column.type === 'number' && isNaN(editValue)) {
+            return;
+        }
+        onSave(item, column.key, editValue, itemType);
+        setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+        setEditValue(value);
+        setIsEditing(false);
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') handleSave();
+        if (e.key === 'Escape') handleCancel();
+    };
+
+    if (isEditing) {
+        const inputClasses = "w-full px-2 py-1 border-2 border-blue-500 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 shadow-md transition-all duration-200 bg-white dark:bg-slate-700 dark:text-white dark:border-sky-400";
+        if (column.type === 'select') {
+            return (
+                <td className={`px-4 py-2.5 text-sm ${className}`}>
+                    <select
+                        ref={inputRef}
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={handleSave}
+                        onKeyDown={handleKeyDown}
+                        className={inputClasses}
+                    >
+                        {column.options.map(opt => (
+                            <option key={opt} value={opt}>{statusMap[opt]?.text || opt}</option>
+                        ))}
+                    </select>
+                </td>
+            );
+        }
+
+        if (column.type === 'boolean') {
+            return (
+                <td className={`px-4 py-2.5 text-sm text-center ${className}`}>
+                    <input
+                        ref={inputRef}
+                        type="checkbox"
+                        checked={!!editValue}
+                        onChange={(e) => {
+                            onSave(item, column.key, e.target.checked, itemType);
+                            setIsEditing(false);
+                        }}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 dark:bg-slate-600 dark:border-slate-500"
+                    />
+                </td>
+            );
+        }
+
+        return (
+            <td className={`px-4 py-2.5 text-sm ${className}`}>
+                <input
+                    ref={inputRef}
+                    type={column.type === 'date' ? 'date' : 'text'}
+                    value={editValue || ''}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={handleSave}
+                    onKeyDown={handleKeyDown}
+                    className={inputClasses}
+                />
+            </td>
+        );
+    }
+
+    return (
+        <td className={`px-4 py-2.5 text-sm text-slate-800 dark:text-slate-200 font-medium whitespace-nowrap group ${className}`}>
+            <div className="flex items-center gap-2">
+                <span>{column.type === 'boolean' ? (value ? 'כן' : 'לא') : (value || '-')}</span>
+                <button
+                    onClick={() => setIsEditing(true)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                >
+                    <Icon path={ICONS.edit} className="w-4 h-4 text-gray-400 hover:text-blue-600 dark:hover:text-sky-400 transition-colors duration-200" />
+                </button>
+            </div>
+        </td>
+    );
+};
+
+const TextCell = ({ text, className = '' }) => (<td className={`px-4 py-2.5 text-sm text-slate-800 dark:text-slate-200 font-medium whitespace-nowrap ${className}`}>{text || '-'}</td>);
+
+const DateCell = ({ date, editable = false, onSave = null, item, itemType, column }) => {
+    if (editable && onSave) {
+        return <EditableCell item={item} itemType={itemType} column={column} onSave={onSave} />;
+    }
+    return (<td className="px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400 font-mono whitespace-nowrap">{date ? new Date(date).toLocaleDateString('he-IL') : '-'}</td>);
+};
+
+const ProgressBarCell = ({ value }) => (
+    <td className="px-4 py-2.5 text-sm whitespace-nowrap">
+        <div className="flex items-center gap-2">
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-500 to-sky-400 h-2 rounded-full transition-all duration-500 ease-out" style={{ width: `${value}%` }}></div>
+            </div>
+            <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 w-8 text-left">{Math.round(value)}%</span>
+        </div>
+    </td>
+);
+
+const SummaryCard = ({ label, value, items = [], iconPath, iconColorClass, type }) => {
+    const getVisualRepresentation = () => {
+        if (!items || items.length === 0) return null;
+
+        const getStatusColor = (status) => {
+            if (status === 'signed') return 'bg-green-200 dark:bg-green-800/50';
+            if (status === 'pending') return 'bg-yellow-200 dark:bg-yellow-800/50';
+            if (status === 'rejected') return 'bg-red-200 dark:bg-red-800/50';
+            return iconColorClass.bg;
+        }
+
+        return (
+            <div className="mt-4 flex-grow">
+                <div className="flex flex-wrap gap-2 items-end h-full">
+                    {items.slice(0, 24).map(item => (
+                        <div key={item.id} className="group relative" title={item.tooltip}>
+                            <div className={`w-8 h-8 rounded-md flex items-center justify-center text-lg ${getStatusColor(item.status)}`}>
+                                {type === 'owner' && <Icon path={ICONS.owner} className={`w-5 h-5 ${iconColorClass.text}`} />}
+                                {type === 'unit' && <Icon path={ICONS.unit} className={`w-5 h-5 ${iconColorClass.text}`} />}
+                                {type === 'building' && <Icon path={ICONS.building} className={`w-5 h-5 ${iconColorClass.text}`} />}
+                            </div>
+                        </div>
+                    ))}
+                    {items.length > 24 && (
+                        <div className="text-sm font-bold text-slate-500 dark:text-slate-400 self-center ml-2">
+                            +{items.length - 24}
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="bg-white/70 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/60 rounded-xl shadow-md p-5 flex flex-col">
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{label}</p>
+                    <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
+                </div>
+                {iconPath && (
+                    <div className={`p-3 rounded-xl ${iconColorClass.bg}`}>
+                        <Icon path={iconPath} className={`w-6 h-6 ${iconColorClass.text}`} />
+                    </div>
+                )}
+            </div>
+            {getVisualRepresentation()}
+        </div>
+    );
+};
+
+const TimelineComponent = ({ timeline }) => (
+    <div className="space-y-4 p-4 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+        <h3 className="text-lg font-semibold">ציר זמן פרויקט</h3>
+        {timeline.sort((a, b) => new Date(a.date) - new Date(b.date)).map((event, idx) => (
+            <div key={idx} className="flex items-center gap-4">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <div>
+                    <p className="font-medium text-slate-800 dark:text-slate-200">{new Date(event.date).toLocaleDateString('he-IL')}</p>
+                    <p className="text-slate-600 dark:text-slate-400">{event.event}</p>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+const NotificationsPanel = ({ notifications }) => (
+    <div className="fixed top-4 right-4 space-y-2 z-50">
+        {notifications.map((notif, idx) => (
+            <div key={idx} className="p-4 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                    <Icon path={ICONS.notification} className="w-5 h-5 text-blue-500" />
+                    <p className="text-slate-800 dark:text-slate-200">{notif.message}</p>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
+// --- THEME TOGGLE COMPONENT ---
+const ThemeToggle = ({ theme, toggleTheme }) => {
+    return (
+        <button
+            onClick={toggleTheme}
+            type="button"
+            className="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-200 dark:focus:ring-slate-700 rounded-lg text-sm p-2.5 relative w-10 h-10 flex items-center justify-center overflow-hidden"
+            aria-label="Toggle theme"
+        >
+            <Icon path={ICONS.sun} className={`w-5 h-5 transition-transform duration-300 ${theme === 'dark' ? 'transform -translate-y-8' : 'transform translate-y-0'}`} />
+            <Icon path={ICONS.moon} className={`w-5 h-5 absolute transition-transform duration-300 ${theme === 'dark' ? 'transform translate-y-0' : 'transform translate-y-8'}`} />
+        </button>
+    );
+};
+
+const ActivityLogModal = ({ isOpen, onClose }) => {
+    if (!isOpen) return null;
+
+    const getActionText = (action) => {
+        const actionMap = { 'created': 'נוצר', 'updated': 'עודכן', 'deleted': 'נמחק', 'column-added': 'עמודה נוספה', 'column-removed': 'עמודה הוסרה', 'signature-changed': 'חתימה שונתה' };
+        return actionMap[action] || action;
+    };
+
+    const getFocusText = (focus) => {
+        const focusMap = { 'owner': 'בעל זכויות', 'unit': 'יחידה', 'building': 'בניין', 'project': 'פרויקט', 'system': 'מערכת' };
+        return focusMap[focus] || focus;
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[80vh] overflow-hidden animate-slideUp flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">יומן שינויים</h2>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200">
+                        <Icon path={ICONS.xMark} className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                    </button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-grow">
+                    {activityLog.length === 0 ? (
+                        <p className="text-center text-slate-500 dark:text-slate-400 py-8">אין שינויים אחרונים</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {activityLog.map(entry => (
+                                <div key={entry.id} className="flex items-start gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl hover:shadow-md transition-all duration-200">
+                                    <div className="p-2 bg-white dark:bg-slate-700 rounded-full shadow-sm">
+                                        <Icon path={ICONS.clock} className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-medium text-slate-900 dark:text-slate-100">{getFocusText(entry.focusLevel)}</span>
+                                            <span className="text-slate-500 dark:text-slate-500">•</span>
+                                            <span className="text-sm text-slate-600 dark:text-slate-400">{entry.itemId}</span>
+                                            <span className="text-slate-500 dark:text-slate-500">•</span>
+                                            <span className="text-sm font-medium text-blue-600 dark:text-sky-400">{getActionText(entry.action)}</span>
+                                            <span className="text-slate-500 dark:text-slate-500">•</span>
+                                            <span className="text-sm text-gray-500">{entry.user}</span>
+                                        </div>
+                                        {entry.fieldChanged && (
+                                            <div className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                                                <span className="font-medium">{entry.fieldChanged}:</span>
+                                                {entry.oldValue && <span className="text-red-600 dark:text-red-400 line-through mx-1">{String(entry.oldValue)}</span>}
+                                                {entry.newValue && <span className="text-green-600 dark:text-green-400 mx-1">{String(entry.newValue)}</span>}
+                                            </div>
+                                        )}
+                                        <div className="mt-1 text-xs text-slate-400 dark:text-slate-500">{new Date(entry.timestamp).toLocaleString('he-IL')}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// MODIFIED: This component is now fully functional
+const ColumnManagerModal = ({ isOpen, onClose, headerConfig, focusLevel, onUpdateConfigAndData }) => {
+    if (!isOpen) return null;
+
+    const [localConfig, setLocalConfig] = useState(JSON.parse(JSON.stringify(headerConfig[focusLevel])));
+    const [newColumn, setNewColumn] = useState({ groupName: '', label: '', type: 'text' });
+
+    const handleAddColumn = () => {
+        if (!newColumn.groupName || !newColumn.label) {
+            console.error("יש לבחור קבוצה ולציין שם עמודה.");
+            return;
+        }
+
+        const newKey = `custom_${newColumn.label.trim().toLowerCase().replace(/\s+/g, '_')}`;
+        const newColumnConfig = {
+            key: newKey,
+            label: newColumn.label.trim(),
+            editable: true,
+            type: newColumn.type,
+            visible: true
+        };
+
+        const updatedConfig = localConfig.map(group => {
+            if (group.name === newColumn.groupName) {
+                return { ...group, columns: [...group.columns, newColumnConfig] };
+            }
+            return group;
+        });
+
+        setLocalConfig(updatedConfig);
+        setNewColumn({ groupName: '', label: '', type: 'text' });
+        logActivity('column-added', 'system', `${focusLevel} - ${newColumn.label}`);
+    };
+
+    const toggleColumnVisibility = (groupIndex, colIndex) => {
+        const updatedConfig = JSON.parse(JSON.stringify(localConfig));
+        updatedConfig[groupIndex].columns[colIndex].visible = !updatedConfig[groupIndex].columns[colIndex].visible;
+        setLocalConfig(updatedConfig);
+    };
+
+    const removeColumn = (groupIndex, colIndex) => {
+        const updatedConfig = JSON.parse(JSON.stringify(localConfig));
+        const removedColumn = updatedConfig[groupIndex].columns.splice(colIndex, 1)[0];
+        setLocalConfig(updatedConfig);
+        logActivity('column-removed', 'system', `${focusLevel} - ${removedColumn.label}`);
+    };
+
+
+    const saveChanges = () => {
+        onUpdateConfigAndData(focusLevel, localConfig);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-hidden animate-slideUp flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-6 border-b border-slate-200 dark:border-slate-700">
+                    <div className="flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">ניהול עמודות - {focusLevel === 'owner' ? 'בעלי זכויות' : focusLevel === 'unit' ? 'יחידות' : focusLevel === 'building' ? 'בניינים' : 'פרויקט'}</h2>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200">
+                            <Icon path={ICONS.xMark} className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                        </button>
+                    </div>
+                </div>
+
+                <div className="p-6 overflow-y-auto flex-grow">
+                    <div className="mb-6 p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <h4 className="font-semibold mb-2 text-slate-800 dark:text-slate-200">הוספת עמודה חדשה</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <select value={newColumn.groupName} onChange={e => setNewColumn({ ...newColumn, groupName: e.target.value })} className="md:col-span-1 block w-full rounded-lg border-slate-300 dark:border-slate-600 p-2 bg-white dark:bg-slate-800 dark:text-white">
+                                <option value="">בחר קבוצה</option>
+                                {localConfig.map(g => <option key={g.name} value={g.name}>{g.name}</option>)}
+                            </select>
+                            <input type="text" value={newColumn.label} onChange={e => setNewColumn({ ...newColumn, label: e.target.value })} placeholder="שם עמודה חדשה" className="md:col-span-1 block w-full rounded-lg border-slate-300 dark:border-slate-600 p-2 bg-white dark:bg-slate-800 dark:text-white" />
+                            <select value={newColumn.type} onChange={e => setNewColumn({ ...newColumn, type: e.target.value })} className="md:col-span-1 block w-full rounded-lg border-slate-300 dark:border-slate-600 p-2 bg-white dark:bg-slate-800 dark:text-white">
+                                <option value="text">טקסט</option>
+                                <option value="number">מספר</option>
+                                <option value="date">תאריך</option>
+                                <option value="boolean">כן/לא</option>
+                                <option value="status">סטטוס</option>
+                                <option value="select">בחירה</option>
+                            </select>
+                            <button onClick={handleAddColumn} className="md:col-span-1 px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">הוסף</button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-6">
+                        {localConfig.map((group, groupIndex) => (
+                            <div key={group.name} className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-5">
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">{group.name}</h3>
+                                <div className="space-y-2">
+                                    {group.columns.map((col, colIndex) => (
+                                        <div key={col.key} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg hover:shadow-sm transition-all duration-200">
+                                            <span className="font-medium text-slate-700 dark:text-slate-300">{col.label}</span>
+                                            <div className="flex items-center gap-4">
+                                                {col.key.startsWith('custom_') && (
+                                                    <button onClick={() => removeColumn(groupIndex, colIndex)} title="מחק עמודה">
+                                                        <Icon path={ICONS.trash} className="w-4 h-4 text-red-400 hover:text-red-600" />
+                                                    </button>
+                                                )}
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input type="checkbox" checked={col.visible} onChange={() => toggleColumnVisibility(groupIndex, colIndex)} className="sr-only peer" />
+                                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="sticky bottom-0 bg-slate-50 dark:bg-slate-800/50 p-6 border-t border-slate-200 dark:border-slate-700">
+                    <div className="flex justify-end gap-3">
+                        <button onClick={onClose} className="px-6 py-2.5 bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors duration-200">ביטול</button>
+                        <button onClick={saveChanges} className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-sky-500 text-white rounded-lg hover:from-blue-600 hover:to-sky-600 transition-all duration-200">שמור שינויים</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// NEW: Confirmation Modal for safe deletions
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md animate-slideUp" onClick={e => e.stopPropagation()}>
+                <div className="p-6">
+                    <div className="flex items-start gap-4">
+                        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
+                           <Icon path={ICONS.warning} className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        </div>
+                        <div className="mt-0 text-center sm:text-right flex-grow">
+                            <h3 className="text-lg leading-6 font-bold text-gray-900 dark:text-slate-100">{title}</h3>
+                            <div className="mt-2">
+                                <p className="text-sm text-gray-500 dark:text-slate-400">{message}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        className="px-4 py-2 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-colors"
+                        onClick={onClose}
+                    >
+                        ביטול
+                    </button>
+                    <button
+                        type="button"
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        onClick={onConfirm}
+                    >
+                        אישור מחיקה
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DetailModal = ({ item, itemType, onClose, onUpdate, onAssignUnit, onUnassignUnit, unassignedUnits }) => {
+    const [activeTab, setActiveTab] = useState('overview');
+
+    useEffect(() => {
+        if (item) {
+            setActiveTab('overview');
+        }
+    }, [item]);
+
+    if (!item) return null;
+
+    // Helper components for detail views
+    const renderField = (label, value) => (
+        <div key={label} className="py-3 px-1 grid grid-cols-3 gap-4">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 col-span-1">{label}</p>
+            <div className="text-sm text-slate-800 dark:text-slate-200 col-span-2">{value || '-'}</div>
+        </div>
+    );
+
+    const StatusText = ({ status }) => {
+        const statusInfo = statusMap[status] || { text: status, color: "text-slate-700 dark:text-slate-200" };
+        const textColorClass = statusInfo.color.match(/text-[\w-]+/g)?.[0] || 'text-slate-700';
+        const darkTextColorClass = statusInfo.color.match(/dark:text-[\w-]+/g)?.[0] || 'dark:text-slate-200';
+        return <span className={`font-semibold ${textColorClass} ${darkTextColorClass}`}>{statusInfo.text}</span>;
+    };
+
+    const OwnerDetailCard = () => {
+        const signatureStatus = getCalculatedSignatureStatus(item);
+        const tabs = {
+            overview: 'סקירה כללית',
+            contact: 'פרטי קשר',
+            legal: 'סטטוס משפטי',
+            financial: 'פיננסי',
+        };
+
+        return (
+            <div className="flex flex-col md:flex-row gap-6">
+                <div className="w-full md:w-1/3 bg-gradient-to-b from-slate-100 to-slate-200/50 dark:from-slate-900 dark:to-slate-800/50 rounded-2xl p-6 flex flex-col items-center text-center self-start">
+                    <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-blue-200 to-sky-200 dark:from-blue-500 dark:to-sky-500 flex items-center justify-center shadow-lg mb-4">
+                        <Icon path={ICONS.owner} className="w-16 h-16 text-white" />
+                        <div className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${signatureStatus === 'signed' ? 'bg-green-500' :
+                                signatureStatus === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
+                            }`}>
+                            {signatureStatus === 'signed' ? '✓' :
+                                signatureStatus === 'pending' ? '⏳' : '✗'}
+                        </div>
+                    </div>
+                    <h2 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100">{item.name}</h2>
+                    <p className="text-slate-500 dark:text-slate-400 font-mono">ת.ז. {item.idNumber}</p>
+                    <p className="mt-1 font-semibold text-blue-600 dark:text-sky-400">יחידה {item.subplot || 'לא משויך'}</p>
+                </div>
+                <div className="w-full md:w-2/3">
+                    <div className="border-b border-slate-200 dark:border-slate-700 mb-4">
+                        <nav className="flex space-x-4 -mb-px">
+                            {Object.entries(tabs).map(([key, label]) => (
+                                <button key={key} onClick={() => setActiveTab(key)} className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === key ? 'border-blue-500 text-blue-600 dark:border-sky-400 dark:text-sky-300' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-200 dark:hover:border-slate-600'
+                                    }`}>{label}</button>
+                            ))}
+                        </nav>
+                    </div>
+                    <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                        {activeTab === 'overview' && <>
+                            {renderField('סטטוס חתימה כללי', <StatusText status={signatureStatus} />)}
+                            {renderField('סוג בעלים', item.ownerType)}
+                            {renderField('פרופיל סוציו', item.socio?.profile)}
+                            {renderField('גיל', item.socio?.age)}
+                            {renderField('סכסוך פעיל', item.hasActiveDispute ? 'כן' : 'לא')}
+                        </>}
+                        {activeTab === 'contact' && <>
+                            {renderField('טלפון', item.contact?.phone)}
+                            {renderField('אימייל', item.contact?.email)}
+                            {renderField('כתובת', item.address)}
+                            {renderField('קשר אחרון', new Date(item.communicationLog?.lastContact).toLocaleDateString('he-IL'))}
+                            {renderField('סיכום קשר', item.communicationLog?.summary)}
+                        </>}
+                        {activeTab === 'legal' && <>
+                            {renderField('הסכם פינוי-בינוי', <StatusText status={item.legalSignatures?.contract} />)}
+                            {renderField('יפוי כח מיסוי', <StatusText status={item.legalSignatures?.po_tax} />)}
+                            {renderField('יפוי כח כללי', <StatusText status={item.legalSignatures?.po_general} />)}
+                            {renderField('התאמת רמ"י', <StatusText status={item.legalSignatures?.IBAmatch} />)}
+                            {renderField('היסטוריה משפטית', item.legalHistory?.hasHistory ? 'קיימת' : 'לא קיימת')}
+                        </>}
+                        {activeTab === 'financial' && <>
+                            {renderField('עיקולים', <StatusText status={item.financialDocs?.liens} />)}
+                            {renderField('משכנתא', <StatusText status={item.financialDocs?.mortgage_report} />)}
+                            {renderField('סטטוס מכירה', <StatusText status={item.sellingStatus} />)}
+                            {renderField('רמת חוב', item.socio?.debtLevel)}
+                        </>}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const UnitDetailCard = () => {
+        const tabs = {
+            overview: 'סקירה כללית',
+            physical: 'מאפיינים פיזיים',
+            legal: 'סטטוס משפטי',
+            owners: 'בעלי זכויות',
+        };
+        return (
+            <div className="space-y-4">
+                <div className="p-4 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">{item.identification.fullAddress}</h2>
+                    <p className="text-slate-500 dark:text-slate-400">יחידה {item.subplot} {item.building ? `בבניין ${item.building.name}` : '(לא משויך לבניין)'}</p>
+                </div>
+                <div className="border-b border-slate-200 dark:border-slate-700">
+                    <nav className="flex space-x-4 -mb-px">
+                        {Object.entries(tabs).map(([key, label]) => (
+                            <button key={key} onClick={() => setActiveTab(key)} className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === key ? 'border-blue-500 text-blue-600 dark:border-sky-400 dark:text-sky-300' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-200 dark:hover:border-slate-600'}`}>{label}</button>
+                        ))}
+                    </nav>
+                </div>
+                <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {activeTab === 'overview' && <>
+                        {renderField('סוג נכס', item.propertyType)}
+                        {renderField('סטטוס אכלוס', <StatusText status={item.status.currentResidentStatus} />)}
+                        {renderField('הסכם פיצוי', <StatusText status={item.status.compensationAgreementStatus} />)}
+                        {renderField('תאריך פינוי', new Date(item.status.evacuationDate).toLocaleDateString('he-IL'))}
+                    </>}
+                    {activeTab === 'physical' && <>
+                        {renderField('שטח נטו (מ"ר)', item.physical.areaSqM_net)}
+                        {renderField('מספר חדרים', item.physical.numRooms)}
+                        {renderField('קומה', item.physical.floor)}
+                        {renderField('מצב הנכס', item.physical.propertyCondition)}
+                        {renderField('חניה', item.physical.parking.exists ? `כן (${item.physical.parking.count} ${item.physical.parking.type})` : 'לא')}
+                        {renderField('מחסן', item.physical.storage.exists ? `כן (${item.physical.storage.areaSqM} מ"ר)` : 'לא')}
+                        {renderField('חריגות בניה', item.physical.hasBuildingViolations ? 'כן' : 'לא')}
+                    </>}
+                    {activeTab === 'legal' && <>
+                        {renderField('אחוז ברכוש משותף', `${item.legal.commonPropertyPercentage}%`)}
+                        {renderField('סוג בעלות רשומה', item.legal.registeredOwnership)}
+                        {renderField('הערות אזהרה', item.legal.warningNotes)}
+                        {renderField('שעבודים', item.legal.liens)}
+                    </>}
+                    {activeTab === 'owners' && (
+                        <div className="py-2">
+                            {item.owners.map(owner => (
+                                <div key={owner.idNumber} className="p-3 my-2 bg-slate-50 dark:bg-slate-900/50 rounded-md flex justify-between items-center">
+                                    <div>
+                                        <p className="font-semibold text-slate-800 dark:text-slate-200">{owner.name}</p>
+                                        <p className="text-xs font-mono text-slate-500">ת.ז. {owner.idNumber}</p>
+                                    </div>
+                                    <StatusText status={getCalculatedSignatureStatus(owner)} />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
+    const BuildingDetailCard = () => {
+        const tabs = {
+            overview: 'סקירה כללית',
+            assignment: 'שיוך יחידות',
+            legal: 'רוב מיוחס'
+        };
+        const majorityDetails = SpecialMajorityCalculator.analyze([item], new Set(item.units.flatMap(u => u.owners).filter(o => getCalculatedSignatureStatus(o) === 'signed').map(o => o.idNumber))).buildings[item.id];
+        return (
+            <div className="space-y-4">
+                <div className="p-4 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">{item.name}</h2>
+                    <p className="text-slate-500 dark:text-slate-400">גוש: {item.gush}, חלקה: {item.helka} | {item.units.length} יחידות משויכות</p>
+                </div>
+                <div className="border-b border-slate-200 dark:border-slate-700">
+                    <nav className="flex space-x-4 -mb-px">
+                        {Object.entries(tabs).map(([key, label]) => (
+                            <button key={key} onClick={() => setActiveTab(key)} className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === key ? 'border-blue-500 text-blue-600 dark:border-sky-400 dark:text-sky-300' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-200 dark:hover:border-slate-600'}`}>{label}</button>
+                        ))}
+                    </nav>
+                </div>
+                <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {activeTab === 'overview' && <>
+                        {renderField('סטטוס בנייה', <StatusText status={item.constructionStatus} />)}
+                        {renderField('גיל מבנה', `${item.physicalCharacteristics.age} שנים`)}
+                        {renderField('קומות', item.physicalCharacteristics.numFloors)}
+                        {renderField('נציגות דיירים', item.condominiumInfo.activeResidentsCommittee.exists ? 'קיימת' : 'לא קיימת')}
+                    </>}
+                    {activeTab === 'assignment' && (
+                        <div className="grid grid-cols-2 gap-4 pt-4">
+                            <div>
+                                <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">יחידות שאינן משויכות</h3>
+                                <div className="space-y-2 p-2 bg-slate-100 dark:bg-slate-900/50 rounded-lg h-64 overflow-y-auto">
+                                    {unassignedUnits.map(unit => (
+                                        <div key={unit.id} className="p-2 bg-white dark:bg-slate-800 rounded flex items-center justify-between">
+                                            <span className="text-sm">{unit.identification.fullAddress}</span>
+                                            <button onClick={() => onAssignUnit(unit.id, item.id)} className="p-1 rounded-full hover:bg-green-100 dark:hover:bg-green-900">
+                                                <Icon path={ICONS.arrowLeft} className="w-4 h-4 text-green-600" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {unassignedUnits.length === 0 && <p className="text-xs text-center text-slate-400 p-4">אין יחידות</p>}
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">יחידות משויכות לבניין זה</h3>
+                                <div className="space-y-2 p-2 bg-slate-100 dark:bg-slate-900/50 rounded-lg h-64 overflow-y-auto">
+                                    {item.units.map(unit => (
+                                        <div key={unit.id} className="p-2 bg-white dark:bg-slate-800 rounded flex items-center justify-between">
+                                            <button onClick={() => onUnassignUnit(unit.id, item.id)} className="p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900">
+                                                <Icon path={ICONS.arrowRight} className="w-4 h-4 text-red-600" />
+                                            </button>
+                                            <span className="text-sm">{unit.identification.fullAddress}</span>
+                                        </div>
+                                    ))}
+                                    {item.units.length === 0 && <p className="text-xs text-center text-slate-400 p-4">אין יחידות</p>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'legal' && (
+                        <>
+                            {renderField('סטטוס עמידה בתנאים', <StatusText status={majorityDetails?.agreement.overallMet ? 'approved' : (majorityDetails?.isValidForCalc ? 'failing' : 'invalid')} />)}
+
+                            {majorityDetails?.isValidForCalc ? (
+                                <>
+                                    {renderField('תנאי הדירות', `עומד בתנאי: ${majorityDetails.agreement.apartment.met ? 'כן' : 'לא'} (${majorityDetails.agreement.apartment.actual} מתוך ${majorityDetails.agreement.apartment.required})`)}
+                                    {renderField('תנאי הרכוש המשותף', `עומד בתנאי: ${majorityDetails.agreement.commonProperty.met ? 'כן' : 'לא'} (${majorityDetails.agreement.commonProperty.actual.toFixed(1)}% מתוך >${majorityDetails.agreement.commonProperty.required.toFixed(1)}%)`)}
+                                </>
+                            ) : (
+                                renderField('סטטוס חישוב', 'לא רלוונטי (פחות מ-4 יחידות בבניין)')
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    const ProjectDetailCard = () => {
+        const tabs = {
+            overview: 'סקירה כללית',
+            progress: 'התקדמות',
+            professionals: 'אנשי מקצוע',
+            timeline: 'ציר זמן' // New tab for timeline
+        };
+        return (
+            <div className="space-y-4">
+                <div className="p-4 bg-slate-100 dark:bg-slate-900/50 rounded-lg">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">{item.projectName}</h2>
+                    <p className="text-slate-500 dark:text-slate-400">{item.projectType} | {item.location.address}</p>
+                </div>
+                <div className="border-b border-slate-200 dark:border-slate-700">
+                    <nav className="flex space-x-4 -mb-px">
+                        {Object.entries(tabs).map(([key, label]) => (
+                            <button key={key} onClick={() => setActiveTab(key)} className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === key ? 'border-blue-500 text-blue-600 dark:border-sky-400 dark:text-sky-300' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:hover:text-slate-200 dark:hover:border-slate-600'}`}>{label}</button>
+                        ))}
+                    </nav>
+                </div>
+                <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {activeTab === 'overview' && <>
+                        {renderField('סטטוס פרויקט', <StatusText status={item.projectStatus} />)}
+                        {renderField('שלב נוכחי', <StatusText status={item.progress.currentPhase} />)}
+                        {renderField('יחידות קיימות', item.progress.numExistingUnits)}
+                        {renderField('יחידות מתוכננות', item.progress.numPlannedUnits)}
+                    </>}
+                    {activeTab === 'progress' && <>
+                        {renderField('סטטוס תכנוני', <StatusText status={item.progress.planningApprovalStatus} />)}
+                        {renderField('סטטוס תקציב', <StatusText status={item.progress.budgetStatus} />)}
+                        {renderField('יעד סיום', new Date(item.progress.projectedCompletionDate).toLocaleDateString('he-IL'))}
+                    </>}
+                    {activeTab === 'professionals' && <>
+                        {renderField('יזם', `${item.professionals.developer.name} (${item.professionals.developer.phone})`)}
+                        {renderField('עו"ד', `${item.professionals.legalAdvisor.name} (${item.professionals.legalAdvisor.phone})`)}
+                        {renderField('אדריכל', `${item.professionals.architect.name} (${item.professionals.architect.phone})`)}
+                    </>}
+                    {activeTab === 'timeline' && <TimelineComponent timeline={item.timeline} />}
+                </div>
+            </div>
+        )
+    }
+
+
+    let content = null;
+    if (itemType === 'owner') {
+        content = <OwnerDetailCard />;
+    } else if (itemType === 'unit') {
+        content = <UnitDetailCard />;
+    } else if (itemType === 'building') {
+        content = <BuildingDetailCard />;
+    } else if (itemType === 'project') {
+        content = <ProjectDetailCard />;
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col animate-slideUp" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-6 border-b border-slate-200 dark:border-slate-700 z-10 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">פרטי פריט</h2>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200">
+                        <Icon path={ICONS.xMark} className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                    </button>
+                </div>
+                <div className="overflow-y-auto flex-grow p-6 space-y-6 bg-slate-50/50 dark:bg-slate-900/50">
+                    {content}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const INITIAL_HEADER_CONFIG = {
+    owner: [
+        {
+            name: 'פרטי זיהוי וקשר', visible: true, columns: [
+                { key: 'idNumber', label: 'ת.ז.', editable: true, type: 'text', visible: true },
+                { key: 'address', label: 'כתובת מגורים', editable: true, type: 'text', visible: true },
+                { key: 'contact.phone', label: 'טלפון', editable: true, type: 'text', visible: false },
+                { key: 'contact.email', label: 'אימייל', editable: true, type: 'text', visible: false },
+                { key: 'contact.preferredContactMethod', label: 'אמצעי קשר מועדף', editable: true, type: 'select', options: ['phone', 'email', 'whatsapp'], visible: true }
+            ]
+        },
+        {
+            name: 'סטטוס חתימה ומסמכים', visible: true, columns: [
+                { key: 'signatureStatus', label: 'סטטוס חתימה כללי', editable: false, type: 'status', visible: true },
+                { key: 'legalSignatures.contract', label: 'הסכם פינוי-בינוי', editable: true, type: 'status', options: ['V', 'X', 'pending'], visible: true },
+                { key: 'legalSignatures.po_tax', label: 'יפוי כח מיסוי', editable: true, type: 'status', options: ['V', 'X', 'pending'], visible: true },
+                { key: 'legalSignatures.po_general', label: 'יפוי כח כללי', editable: true, type: 'status', options: ['V', 'X', 'pending'], visible: true },
+                { key: 'legalSignatures.IBAmatch', label: 'התאמת רמ"י', editable: true, type: 'status', options: ['ok', 'missing', 'pending'], visible: false },
+                { key: 'requiredDocuments.contract.status', label: 'מסמך הסכם', editable: true, type: 'status', options: ['signed', 'pending', 'missing'], visible: true },
+                { key: 'requiredDocuments.powerOfAttorney.status', label: 'מסמך יפוי כח', editable: true, type: 'status', options: ['signed', 'pending', 'missing'], visible: true },
+            ]
+        },
+        {
+            name: 'סטטוס פיננסי וסוציו', visible: true, columns: [
+                { key: 'financialDocs.liens', label: 'עיקולים', editable: true, type: 'status', options: ['ok', 'exists', 'unknown'], visible: true },
+                { key: 'financialDocs.mortgage_report', label: 'משכנתא', editable: true, type: 'status', options: ['na', 'exists', 'unknown'], visible: true },
+                { key: 'sellingStatus', label: 'סטטוס מכירה', editable: true, type: 'select', options: ['not-selling', 'in-process', 'sold'], visible: true },
+                { key: 'socio.age', label: 'גיל', editable: true, type: 'number', visible: false },
+                { key: 'socio.housingOwenershipStatus', label: 'סטטוס בעלות דיור', editable: true, type: 'select', options: ['self_owned', 'leased', 'rented'], visible: false },
+            ]
+        },
+        {
+            name: 'ניהול קשר', visible: true, columns: [
+                { key: 'communicationLog.lastContact', label: 'תקשורת אחרונה', editable: true, type: 'date', visible: true },
+                { key: 'hasActiveDispute', label: 'סכסוך פעיל', editable: true, type: 'boolean', visible: true }
+            ]
+        },
+    ],
+    unit: [
+        {
+            name: 'מאפייני נכס', visible: true, columns: [
+                { key: 'propertyType', label: 'סוג יחידה', editable: true, type: 'select', options: ['דירת מגורים', 'דירת נופש/מלונאות', 'משרד/מסחר', 'אחר'], visible: true },
+                { key: 'physical.areaSqM_net', label: 'שטח נטו (מ"ר)', editable: true, type: 'number', visible: true },
+                { key: 'physical.numRooms', label: 'חדרים', editable: true, type: 'number', visible: true },
+                { key: 'physical.floor', label: 'קומה', editable: true, type: 'number', visible: false },
+                { key: 'legal.commonPropertyPercentage', label: '% ברכוש המשותף', editable: true, type: 'number', visible: true },
+                { key: 'physical.propertyCondition', label: 'מצב הנכס', editable: true, type: 'select', options: ['חדש', 'משופץ', 'דורש שיפוץ', 'ישן/במצב מקורי', 'טוב', 'מצוין', 'סביר'], visible: true },
+                { key: 'physical.parking.exists', label: 'חניה', editable: true, type: 'boolean', visible: true },
+                { key: 'physical.storage.exists', label: 'מחסן', editable: true, type: 'boolean', visible: false },
+                { key: 'physical.hasBuildingViolations', label: 'חריגות בניה', editable: true, type: 'boolean', visible: true },
+            ]
+        },
+        {
+            name: 'סטטוס ביצוע וחתימות', visible: true, columns: [
+                { key: 'signingStatus', label: 'סטטוס חתימות', visible: true, type: 'progress' },
+                { key: 'status.evacuationDate', label: 'תאריך פינוי', editable: true, type: 'date', visible: true },
+                { key: 'status.compensationAgreementStatus', label: 'הסכם פיצוי', editable: true, type: 'select', options: ['signed', 'pending', 'rejected', 'na'], visible: true },
+                { key: 'status.currentResidentStatus', label: 'סטטוס אכלוס', editable: true, type: 'select', options: ['owner', 'tenant', 'vacant'], visible: true },
+            ]
+        },
+        {
+            name: 'מסמכים', visible: true, columns: [
+                { key: 'documentsStatus', label: 'התקדמות מסמכים', visible: true, type: 'progress' },
+                { key: 'requiredDocuments.tabuExtract.status', label: 'נסח טאבו', editable: true, type: 'status', options: ['ok', 'missing', 'pending', 'na'], visible: true },
+                { key: 'requiredDocuments.leaseContract.status', label: 'חוזה שכירות', editable: true, type: 'status', options: ['ok', 'missing', 'pending', 'na'], visible: false },
+                { key: 'requiredDocuments.buildingPermit.status', label: 'היתר בניה', editable: true, type: 'status', options: ['ok', 'missing', 'pending', 'na'], visible: false },
+            ]
+        },
+        {
+            name: 'בעלי זכויות', visible: true, columns: [
+                { key: 'ownerNames', label: 'שמות בעלים', visible: true, type: 'text' },
+                { key: 'ownerCount', label: 'כמות בעלים', visible: true, type: 'text' },
+            ]
+        }
+    ],
+    building: [
+        {
+            name: 'מאפייני בניין', visible: true, columns: [
+                { key: 'buildingType', label: 'סוג בניין', editable: true, type: 'select', options: ['מגורים', 'מסחרי', 'משולב'], visible: true },
+                { key: 'constructionStatus', label: 'סטטוס בנייה', editable: true, type: 'select', options: ['not-started', 'in-progress', 'completed'], visible: true },
+                { key: 'condominiumInfo.expectedUnits', label: 'יחידות צפויות', editable: true, type: 'number', visible: false },
+                { key: 'condominiumInfo.actualUnits', label: 'יחידות בפועל', editable: true, type: 'number', visible: true },
+                { key: 'physicalCharacteristics.numFloors', label: 'מספר קומות', editable: true, type: 'number', visible: true },
+                { key: 'condominiumInfo.activeResidentsCommittee.exists', label: 'נציגות דיירים פעילה', editable: true, type: 'boolean', visible: true },
+            ]
+        },
+        {
+            name: 'רוב מיוחס ומדדי התקדמות', visible: true, columns: [
+                { key: 'unitCount', label: 'סה"כ יחידות', visible: true, type: 'text' },
+                { key: 'specialMajorityStatus', label: 'עמידה ברוב מיוחס', visible: true, type: 'status' },
+                { key: 'signingProgress', label: 'התקדמות חתימות', visible: true, type: 'progress' },
+                { key: 'commonPropertyProgress', label: 'התקדמות רכוש משותף', visible: true, type: 'progress' },
+                { key: 'financialIssuesCount', label: 'יחידות בסיכון', visible: true, type: 'text' },
+            ]
+        },
+    ],
+    project: [
+        {
+            name: 'מדדי מפתח (KPIs)', visible: true, columns: [
+                { key: 'projectType', label: 'סוג פרויקט', editable: true, type: 'select', options: ['פינוי-בינוי', 'תמ"א 38/1', 'תמ"א 38/2', 'אחר'], visible: true },
+                { key: 'progress.planningApprovalStatus', label: 'סטטוס תכנוני', editable: true, type: 'select', options: ['pending', 'approved', 'rejected'], visible: true },
+                { key: 'progress.budgetStatus', label: 'סטטוס תקציב', editable: true, type: 'select', options: ['on-track', 'over-budget', 'under-budget'], visible: true },
+                { key: 'progress.projectedCompletionDate', label: 'יעד סיום', editable: true, type: 'date', visible: true },
+                { key: 'overallSpecialMajorityStatus', label: 'רוב מיוחס כללי', visible: true, type: 'status' },
+                { key: 'overallSigningProgress', label: 'התקדמות חתימות כללית', visible: true, type: 'progress' },
+            ]
+        },
+        {
+            name: 'סיכום נתונים', visible: true, columns: [
+                { key: 'totalUnits', label: 'סה"כ יחידות', visible: true, type: 'text' },
+                { key: 'progress.numExistingUnits', label: 'יחידות קיימות', editable: true, type: 'number', visible: true },
+                { key: 'progress.numPlannedUnits', label: 'יחידות מתוכננות', editable: true, type: 'number', visible: true },
+                { key: 'totalOwners', label: 'סה"כ בעלים', visible: true, type: 'text' },
+                { key: 'professionals.developer.name', label: 'יזם', editable: true, type: 'text', visible: true },
+                { key: 'professionals.legalAdvisor.name', label: 'עו"ד פרויקט', editable: true, type: 'text', visible: true },
+            ]
+        }
+    ]
+};
+
+
+// --- NEW COMPONENTS FOR IMPROVED UX ---
+
+const FocusNavigation = ({ focusLevel, setFocusLevel }) => {
+    const focusOptions = [
+        { level: 'project', icon: ICONS.project, label: 'מקבץ' },
+        { level: 'building', icon: ICONS.building, label: 'בניין' },
+        { level: 'unit', icon: ICONS.unit, label: 'יחידה' },
+        { level: 'owner', icon: ICONS.owner, label: 'בעלים' }
+    ];
+
+    return (
+        <div className="sticky top-4 z-20 mb-8">
+            <div className="max-w-2xl mx-auto p-2 bg-white/50 dark:bg-slate-900/70 backdrop-blur-sm rounded-xl grid grid-cols-4 gap-2 shadow-lg border border-slate-200/50 dark:border-slate-700/60">
+                {focusOptions.map((option) => (
+                    <button
+                        key={option.level}
+                        onClick={() => setFocusLevel(option.level)}
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold rounded-lg transition-all duration-200 ${focusLevel === option.level
+                                ? 'bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-lg'
+                                : 'bg-white/70 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                    >
+                        <Icon path={option.icon} className="w-5 h-5" />
+                        <span>{option.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const QuickActions = ({ onAddRow, onShowStrategyDashboard }) => {
+    return (
+        <div className="fixed bottom-6 right-6 z-30 flex flex-col gap-4">
+            <button
+                onClick={onShowStrategyDashboard}
+                className="bg-gradient-to-r from-indigo-600 to-purple-500 text-white rounded-full p-4 shadow-lg hover:from-indigo-700 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 transform hover:scale-110"
+                title="סדנת תכנון אסטרטגי"
+            >
+                <Icon path={ICONS.strategy} className="w-6 h-6" />
+            </button>
+            <button
+                onClick={onAddRow}
+                className="bg-gradient-to-r from-blue-600 to-sky-500 text-white rounded-full p-4 shadow-lg hover:from-blue-700 hover:to-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-110"
+                title="הוסף פריט"
+            >
+                <Icon path={ICONS.plus} className="w-6 h-6" />
+            </button>
+        </div>
+    );
+};
+
+const SearchAndFilters = ({ searchTerm, setSearchTerm, onShowColumnManager, onExport, onImport }) => {
+    return (
+        <div className="bg-white/70 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/60 rounded-xl shadow-md p-5 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="md:col-span-2 relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">חיפוש</label>
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 top-6">
+                        <Icon path={ICONS.search} className="w-5 h-5 text-slate-400" />
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="חיפוש..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="block w-full rounded-lg border-slate-300 dark:border-slate-600 shadow-sm p-3 pl-10 focus:border-blue-500 focus:ring-blue-500 transition-all duration-200 bg-white dark:bg-slate-800 dark:text-white dark:placeholder-slate-400"
+                    />
+                </div>
+                <div className="flex gap-2 justify-end">
+                    <button
+                        onClick={onShowColumnManager}
+                        className="px-4 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 flex items-center gap-2"
+                    >
+                        <Icon path={ICONS.columns} className="w-5 h-5" />
+                        <span>עמודות</span>
+                    </button>
+                    <button onClick={onExport} className="px-4 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 flex items-center gap-2">
+                        <Icon path={ICONS.download} className="w-5 h-5" />
+                        ייצוא
+                    </button>
+                    <label className="px-4 py-3 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 flex items-center gap-2 cursor-pointer">
+                        <Icon path={ICONS.import} className="w-5 h-5" />
+                        ייבוא
+                        <input type="file" onChange={onImport} className="hidden" accept=".csv" />
+                    </label>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const DataTable = ({
+    focusLevel,
+    sortedAndFilteredData,
+    headerConfig,
+    requestSort,
+    getSortIcon,
+    setSelectedItem,
+    setSelectedItemType,
+    updateData,
+    handleDeleteRow // NEW: Prop for deleting a row
+}) => {
+    return (
+        <div className="shadow-2xl shadow-slate-400/20 dark:shadow-black/30 rounded-2xl overflow-hidden border-2 border-white/80 dark:border-slate-700/50 relative">
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y-2 divide-slate-300 dark:divide-slate-700 border-collapse">
+                    <thead className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 backdrop-blur-sm sticky top-0 z-10">
+                        <tr>
+                            <th scope="col" className="sticky right-0 bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 z-20 px-4 py-3 text-right text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider border-l-2 border-slate-400 dark:border-slate-600 w-[230px]">
+                                {focusLevel === 'owner' ? 'שם בעלים' : focusLevel === 'unit' ? 'כתובת יחידה' : focusLevel === 'building' ? 'שם בניין' : 'שם פרויקט'}
+                            </th>
+                            {focusLevel === 'owner' && (
+                                <th scope="col" className="sticky right-[230px] bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 z-20 px-4 py-3 text-center text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider border-l-2 border-slate-400 dark:border-slate-600 w-[80px]">
+                                    יחידה
+                                </th>
+                            )}
+                            {headerConfig[focusLevel]
+                                .filter((g) => g.visible)
+                                .map((group) => (
+                                    <th
+                                        key={group.name}
+                                        colSpan={group.columns.filter((c) => c.visible).length}
+                                        className="px-3 py-3 text-center text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider border-l border-slate-200 dark:border-slate-700 last:border-l-0"
+                                    >
+                                        {group.name}
+                                    </th>
+                                ))}
+                                {/* NEW: Actions column header */}
+                            <th scope="col" className="px-3 py-3 text-center text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider border-l border-slate-200 dark:border-slate-700">פעולות</th>
+                        </tr>
+                        <tr>
+                            <th
+                                scope="col"
+                                className={`sticky right-0 bg-slate-200 dark:bg-slate-700 z-20 px-4 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400 border-l-2 border-slate-400 dark:border-slate-600`}
+                            >
+                                <button
+                                    onClick={() => requestSort(focusLevel === 'owner' ? 'name' : 'name', 'text')}
+                                    className="flex items-center gap-1"
+                                >
+                                    שם <Icon path={getSortIcon(focusLevel === 'owner' ? 'name' : 'name')} />
+                                </button>
+                            </th>
+                            {focusLevel === 'owner' && (
+                                <th
+                                    scope="col"
+                                    className={`sticky right-[230px] bg-slate-200 dark:bg-slate-700 z-20 px-4 py-2.5 text-center text-xs font-bold text-slate-500 dark:text-slate-400 border-l-2 border-slate-400 dark:border-slate-600`}
+                                >
+                                    <button onClick={() => requestSort('subplot', 'number')} className="flex items-center gap-1 mx-auto">
+                                        מספר <Icon path={getSortIcon('subplot')} />
+                                    </button>
+                                </th>
+                            )}
+                            {headerConfig[focusLevel]
+                                .filter((g) => g.visible)
+                                .flatMap((group) =>
+                                    group.columns
+                                        .filter((c) => c.visible)
+                                        .map((col) => (
+                                            <th
+                                                key={col.key}
+                                                scope="col"
+                                                className="px-3 py-2.5 text-right text-xs font-bold text-slate-500 dark:text-slate-400 whitespace-nowrap border-l border-slate-200 dark:border-slate-700 last:border-l-0"
+                                            >
+                                                <button onClick={() => requestSort(col.key, col.type)} className="flex items-center gap-1">
+                                                    {col.label} <Icon path={getSortIcon(col.key)} />
+                                                </button>
+                                            </th>
+                                        ))
+                                )}
+                                {/* NEW: Empty header for actions column */}
+                            <th scope="col" className="px-3 py-2.5 border-l border-slate-200 dark:border-slate-700"></th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white/70 dark:bg-slate-800/80 divide-y-2 divide-slate-300 dark:divide-slate-700">
+                        {sortedAndFilteredData.map((item, index) => {
+                            const rowKey = item.id || (focusLevel === 'owner' ? `${item.idNumber}-${item.subplot || 'unassigned'}` : item.name);
+
+                            return (
+                                <tr key={rowKey} className="hover:bg-sky-50/50 dark:hover:bg-slate-700/50 transition-colors duration-200">
+                                    <td
+                                        onClick={() => {
+                                            setSelectedItem(item);
+                                            setSelectedItemType(focusLevel);
+                                        }}
+                                        className="sticky right-0 bg-white/70 dark:bg-slate-800/80 px-4 py-2.5 font-semibold text-blue-700 dark:text-sky-400 hover:underline cursor-pointer border-l-2 border-slate-400 dark:border-slate-600"
+                                    >
+                                        {item.name || `יחידה ${item.subplot}`}
+                                    </td>
+                                    {focusLevel === 'owner' && (
+                                        <td className="sticky right-[230px] bg-white/70 dark:bg-slate-800/80 px-4 py-2.5 text-center font-mono border-l-2 border-slate-400 dark:border-slate-600">
+                                            {item.subplot || '---'}
+                                        </td>
+                                    )}
+
+                                    {headerConfig[focusLevel]
+                                        .filter((g) => g.visible)
+                                        .flatMap((group) =>
+                                            group.columns.filter((c) => c.visible).map((col) => {
+                                                const value = getNestedValue(item, col.key);
+
+                                                if (col.editable) {
+                                                    if (col.type === 'status') {
+                                                        return (
+                                                            <StatusCell
+                                                                key={col.key}
+                                                                status={value}
+                                                                editable
+                                                                onEdit={() => {
+                                                                    let newValue = value;
+                                                                    const statusCycle = col.options || [];
+                                                                    const currentIndex = statusCycle.indexOf(value);
+                                                                    newValue = statusCycle[(currentIndex + 1) % statusCycle.length] || statusCycle[0];
+                                                                    updateData(item, col.key, newValue, focusLevel);
+                                                                }}
+                                                                tooltip={col.label}
+                                                            />
+                                                        );
+                                                    }
+                                                    return (
+                                                        <EditableCell
+                                                            key={col.key}
+                                                            item={item}
+                                                            itemType={focusLevel}
+                                                            column={col}
+                                                            onSave={updateData}
+                                                        />
+                                                    );
+                                                }
+
+                                                if (col.key === 'signatureStatus' && focusLevel === 'owner') {
+                                                    return <StatusCell key={col.key} status={item.signatureStatus} tooltip="סטטוס חתימה כללי" />;
+                                                }
+
+                                                if (col.type === 'progress') return <ProgressBarCell key={col.key} value={value} />;
+                                                if (col.type === 'status') return <StatusCell key={col.key} status={value} tooltip={col.label} />;
+                                                if (col.type === 'date') return <DateCell key={col.key} date={value} />;
+
+                                                return <TextCell key={col.key} text={value !== undefined && value !== null ? String(value) : '-'} />;
+                                            })
+                                        )}
+                                    {/* NEW: Delete button cell */}
+                                    <td className="px-4 py-2.5 text-center">
+                                        <button onClick={() => handleDeleteRow(item, focusLevel)} className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">
+                                            <Icon path={ICONS.trash} className="w-4 h-4 text-red-500" />
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+// --- NEW: Strategic Dashboard Modal (Replaces AssignmentManagerModal) ---
+const StrategicDashboardModal = ({ isOpen, onClose, data, onApplyChanges, allOwners, addNotification }) => {
+    if (!isOpen) return null;
+
+    const [localData, setLocalData] = useState(JSON.parse(JSON.stringify(data)));
+    const [scenarioSignedOwners, setScenarioSignedOwners] = useState(new Set());
+    const [scenarioName, setScenarioName] = useState('תרחיש נוכחי');
+    const [savedScenarios, setSavedScenarios] = useState([]); // For saving multiple scenarios
+
+    const majorityStatus = SpecialMajorityCalculator.analyze(localData.buildings, scenarioSignedOwners);
+
+    const toggleOwnerSignature = (ownerIdNumber) => {
+        setScenarioSignedOwners(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(ownerIdNumber)) {
+                newSet.delete(ownerIdNumber);
+            } else {
+                newSet.add(ownerIdNumber);
+            }
+            return newSet;
+        });
+    };
+
+    const saveScenario = () => {
+        const newScenario = {
+            name: scenarioName,
+            signedOwners: Array.from(scenarioSignedOwners),
+            status: majorityStatus
+        };
+        setSavedScenarios(prev => [...prev, newScenario]);
+        addNotification(`תרחיש "${scenarioName}" נשמר בהצלחה`);
+    };
+
+    const loadScenario = (scenario) => {
+        setScenarioSignedOwners(new Set(scenario.signedOwners));
+        setScenarioName(scenario.name);
+    };
+
+    const handleAssign = (dropEvent) => {
+        setLocalData(prev => {
+            const newLocal = JSON.parse(JSON.stringify(prev));
+            if (dropEvent.draggedItemType === 'unit' && dropEvent.targetZoneType === 'building') {
+                const unitIndex = newLocal.unassignedUnits.findIndex(u => u.id === dropEvent.draggedItemId);
+                if (unitIndex > -1) {
+                    const [unit] = newLocal.unassignedUnits.splice(unitIndex, 1);
+                    const building = newLocal.buildings.find(b => b.id === dropEvent.targetZoneId);
+                    if (building) building.units.push(unit);
+                }
+            } else if (dropEvent.draggedItemType === 'owner' && dropEvent.targetZoneType === 'unit') {
+                let owner;
+                let ownerIndex;
+                let ownerUnit;
+                newLocal.buildings.forEach(b => b.units.forEach(u => {
+                    ownerIndex = u.owners.findIndex(o => o.id === dropEvent.draggedItemId);
+                    if (ownerIndex > -1) {
+                        owner = u.owners[ownerIndex];
+                        ownerUnit = u;
+                    }
+                }));
+                if (!owner && newLocal.unassignedOwners) {
+                    ownerIndex = newLocal.unassignedOwners.findIndex(o => o.id === dropEvent.draggedItemId);
+                    if (ownerIndex > -1) owner = newLocal.unassignedOwners[ownerIndex];
+                }
+                if (owner) {
+                    if (ownerUnit) {
+                        ownerUnit.owners.splice(ownerIndex, 1);
+                    } else if (newLocal.unassignedOwners) {
+                        newLocal.unassignedOwners.splice(ownerIndex, 1);
+                    }
+                    const targetUnit = newLocal.buildings.flatMap(b => b.units).find(u => u.id === dropEvent.targetZoneId) || newLocal.unassignedUnits.find(u => u.id === dropEvent.targetZoneId);
+                    if (targetUnit) targetUnit.owners.push(owner);
+                }
+            }
+            return newLocal;
+        });
+    };
+
+    const applyChanges = () => {
+        onApplyChanges(localData);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden animate-slideUp flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">סדנת תכנון אסטרטגי</h2>
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors duration-200">
+                        <Icon path={ICONS.xMark} className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+                    </button>
+                </div>
+                <div className="p-6 overflow-y-auto flex-grow space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">שיוך יחידות ובניינים</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <DropZone onDrop={handleAssign} acceptedTypes={['unit', 'owner']} zoneId="unassigned" zoneType="unassigned">
+                                    <h4>לא משויך</h4>
+                                    {localData.unassignedUnits.map(u => <DraggableItem key={u.id} item={u} type="unit" />)}
+                                    {localData.unassignedOwners.map(o => <DraggableItem key={o.id} item={o} type="owner" />)}
+                                </DropZone>
+                                <div>
+                                    <h4>בניינים</h4>
+                                    {localData.buildings.map(b => (
+                                        <DropZone key={b.id} onDrop={handleAssign} acceptedTypes={['unit']} zoneId={b.id} zoneType="building">
+                                            <h5>{b.name}</h5>
+                                            {b.units.map(u => <DraggableItem key={u.id} item={u} type="unit" />)}
+                                        </DropZone>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">סימולציית חתימות</h3>
+                            <input value={scenarioName} onChange={e => setScenarioName(e.target.value)} placeholder="שם תרחיש" className="w-full p-2 border rounded" />
+                            <button onClick={saveScenario} className="px-4 py-2 bg-blue-500 text-white rounded">שמור תרחיש</button>
+                            <div className="h-64 overflow-y-auto space-y-2">
+                                {allOwners.map(owner => (
+                                    <div key={owner.id} className="flex items-center gap-2 p-2 bg-slate-100 rounded">
+                                        <input type="checkbox" checked={scenarioSignedOwners.has(owner.idNumber)} onChange={() => toggleOwnerSignature(owner.idNumber)} />
+                                        <span>{owner.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold">תוצאות סימולציה</h3>
+                        <p>רוב מיוחס כללי: {majorityStatus.cluster.agreement.overallMet ? 'עומד' : 'לא עומד'}</p>
+                        <p>דירות חתומות: {majorityStatus.cluster.agreement.apartment.actual} / {majorityStatus.cluster.agreement.apartment.required}</p>
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-lg font-semibold">תרחישים שמורים</h3>
+                        {savedScenarios.map((sc, idx) => (
+                            <div key={idx} className="flex justify-between p-2 bg-slate-100 rounded">
+                                <span>{sc.name}</span>
+                                <button onClick={() => loadScenario(sc)} className="text-blue-500">טען</button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+                <div className="sticky bottom-0 bg-slate-50 dark:bg-slate-800/50 p-6 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3">
+                    <button onClick={onClose} className="px-6 py-2.5 bg-slate-200 text-slate-700 rounded-lg">ביטול</button>
+                    <button onClick={applyChanges} className="px-6 py-2.5 bg-blue-500 text-white rounded-lg">החל שינויים</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN APP COMPONENT ---
+export default function App() {
+    const [focusLevel, setFocusLevel] = useState('owner');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState(null);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedItemType, setSelectedItemType] = useState(null);
+    const [showActivityLog, setShowActivityLog] = useState(false);
+    const [showColumnManager, setShowColumnManager] = useState(false);
+    const [showStrategyDashboard, setShowStrategyDashboard] = useState(false);
+    const [data, setData] = useState(PROJECT_DATA);
+    const [headerConfig, setHeaderConfig] = useState(INITIAL_HEADER_CONFIG);
+    const [theme, setTheme] = useState('light');
+    const [notifications, setNotifications] = useState([]);
+    // NEW: State for confirmation modal
+    const [confirmation, setConfirmation] = useState({ isOpen: false });
+
+
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        setTheme(savedTheme === 'dark' || (!savedTheme && systemPrefersDark) ? 'dark' : 'light');
+    }, []);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    // Effect to reset search and sort when focus level changes
+    useEffect(() => {
+        setSearchTerm('');
+        setSortConfig(null);
+    }, [focusLevel]);
+
+
+    const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+    const addNotification = useCallback((message) => {
+        const newNotif = { id: Date.now(), message };
+        setNotifications(prev => [...prev, newNotif]);
+        setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== newNotif.id)), 5000);
+    }, []);
+
+    const ALL_OWNERS_WITH_CONTEXT = useMemo(() => {
+        const assignedOwners = data.buildings.flatMap(b =>
+            b.units.flatMap(u =>
+                u.owners.map(o => ({
+                    ...o,
+                    signatureStatus: getCalculatedSignatureStatus(o),
+                    unit: u,
+                    building: b
+                }))
+            )
+        );
+        const unassigned = (data.unassignedOwners || []).map(o => ({ ...o, signatureStatus: getCalculatedSignatureStatus(o), unit: null, building: null }));
+        return [...assignedOwners, ...unassigned];
+    }, [data]);
+
+    const ALL_UNITS_WITH_CONTEXT = useMemo(() => {
+        const assignedUnits = data.buildings.flatMap(b => b.units.map(u => ({ ...u, building: b })));
+        const unassigned = (data.unassignedUnits || []).map(u => ({ ...u, building: null }));
+
+        return [...assignedUnits, ...unassigned].map(u => {
+            const signedOwners = u.owners.filter(o => getCalculatedSignatureStatus(o) === 'signed').length;
+            const docStatuses = Object.values(u.requiredDocuments || {}).map(d => d.status);
+            const okDocs = docStatuses.filter(s => s === 'ok' || s === 'signed').length;
+            const relevantDocs = docStatuses.filter(s => s !== 'na').length;
+            return {
+                ...u,
+                name: u.identification.fullAddress,
+                ownerNames: u.owners.map(o => o.name).join(', '),
+                ownerCount: u.owners.length,
+                signingStatus: u.owners.length > 0 ? (signedOwners / u.owners.length) * 100 : 0,
+                documentsStatus: relevantDocs > 0 ? (okDocs / relevantDocs) * 100 : 0,
+            }
+        });
+    }, [data]);
+
+    const ALL_BUILDINGS_WITH_CONTEXT = useMemo(() => {
+        const initialSignedOwners = new Set(data.buildings.flatMap(b => b.units.flatMap(u => u.owners)).filter(o => getCalculatedSignatureStatus(o) === 'signed').map(o => o.idNumber));
+        const majorityStatus = SpecialMajorityCalculator.analyze(data.buildings, initialSignedOwners);
+
+        return data.buildings.map(b => {
+            const buildingDetail = majorityStatus.buildings[b.id];
+            const signedUnits = b.units.filter(u => u.owners.every(o => getCalculatedSignatureStatus(o) === 'signed')).length;
+
+            return {
+                ...b,
+                unitCount: b.units.length,
+                specialMajorityStatus: buildingDetail?.agreement.overallMet ? 'approved' : (buildingDetail?.isValidForCalc ? 'failing' : 'invalid'),
+                signingProgress: b.units.length > 0 ? (signedUnits / b.units.length) * 100 : 0,
+                commonPropertyProgress: buildingDetail?.totalCommonProperty > 0 ? (buildingDetail.signedCommonProperty / buildingDetail.totalCommonProperty) * 100 : 0,
+                financialIssuesCount: b.units.filter(u => u.legal.liens !== 'נקי').length,
+            };
+        });
+    }, [data]);
+
+    const PROJECT_WITH_CONTEXT = useMemo(() => {
+        const initialSignedOwners = new Set(data.buildings.flatMap(b => b.units.flatMap(u => u.owners)).filter(o => getCalculatedSignatureStatus(o) === 'signed').map(o => o.idNumber));
+        const majorityStatus = SpecialMajorityCalculator.analyze(data.buildings, initialSignedOwners);
+        const allUnits = data.buildings.flatMap(b => b.units);
+        const allOwners = new Set(allUnits.flatMap(u => u.owners.map(o => o.idNumber))).size;
+
+        return [{
+            ...data,
+            totalUnits: allUnits.length,
+            totalOwners: allOwners,
+            overallSpecialMajorityStatus: majorityStatus.cluster.agreement.overallMet ? 'approved' : 'failing',
+            overallSigningProgress: majorityStatus.cluster.totalApartments > 0 ? (majorityStatus.cluster.agreement.apartment.actual / majorityStatus.cluster.totalApartments) * 100 : 0,
+        }];
+    }, [data]);
+
+    const updateData = useCallback((item, field, value, level) => {
+        setData(prevData => {
+            const newData = JSON.parse(JSON.stringify(prevData));
+            let itemToUpdate;
+            let identifier;
+
+            if (level === 'owner') {
+                let found = false;
+                for (const b of newData.buildings) {
+                    for (const u of b.units) {
+                        const owner = u.owners.find(o => o.id === item.id);
+                        if (owner) {
+                            itemToUpdate = owner;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+                if (!found && newData.unassignedOwners) {
+                    itemToUpdate = newData.unassignedOwners.find(o => o.id === item.id);
+                }
+
+                identifier = item.name;
+            } else if (level === 'unit') {
+                let foundInBuilding = false;
+                for (const building of newData.buildings) {
+                    const unit = building.units.find(u => u.id === item.id);
+                    if (unit) {
+                        itemToUpdate = unit;
+                        foundInBuilding = true;
+                        break;
+                    }
+                }
+                if (!foundInBuilding && newData.unassignedUnits) {
+                    itemToUpdate = newData.unassignedUnits.find(u => u.id === item.id);
+                }
+                identifier = `Unit ${item.subplot}`;
+            } else if (level === 'building') {
+                itemToUpdate = newData.buildings.find(b => b.id === item.id);
+                identifier = item.name;
+            } else if (level === 'project') {
+                itemToUpdate = newData;
+                identifier = item.projectName;
+            }
+
+            if (itemToUpdate) {
+                const oldValue = getNestedValue(itemToUpdate, field);
+                setNestedValue(itemToUpdate, field, value);
+                logActivity('updated', level, identifier, { fieldChanged: field, oldValue, newValue: value });
+            }
+            return newData;
+        });
+    }, []);
+
+    const handleConfigAndUpdateData = useCallback((level, newConfig) => {
+        const oldConfig = headerConfig[level];
+        setHeaderConfig(prev => ({ ...prev, [level]: newConfig }));
+
+        const getColumns = (config) => new Set(config.flatMap(g => g.columns.map(c => c.key)));
+
+        const oldCols = getColumns(oldConfig);
+        const newCols = getColumns(newConfig);
+        const addedCols = [...newCols].filter(key => !oldCols.has(key));
+
+        if (addedCols.length > 0) {
+            setData(prevData => {
+                const newData = JSON.parse(JSON.stringify(prevData));
+                const itemsToUpdate = [];
+
+                if (level === 'owner') {
+                    newData.buildings.forEach(b => b.units.forEach(u => itemsToUpdate.push(...u.owners)));
+                    itemsToUpdate.push(...(newData.unassignedOwners || []));
+                } else if (level === 'unit') {
+                    newData.buildings.forEach(b => itemsToUpdate.push(...b.units));
+                    itemsToUpdate.push(...(newData.unassignedUnits || []));
+                } else if (level === 'building') {
+                    itemsToUpdate.push(...newData.buildings);
+                } else if (level === 'project') {
+                    itemsToUpdate.push(newData);
+                }
+
+                itemsToUpdate.forEach(item => {
+                    addedCols.forEach(key => {
+                        if (!getNestedValue(item, key)) {
+                            const colConfig = newConfig.flatMap(g => g.columns).find(c => c.key === key);
+                            let defaultValue = null;
+                            if (colConfig?.type === 'status') defaultValue = (colConfig.options || ['missing'])[0];
+                            if (colConfig?.type === 'boolean') defaultValue = false;
+                            if (colConfig?.type === 'number') defaultValue = 0;
+                            if (colConfig?.type === 'date') defaultValue = new Date().toISOString().split('T')[0];
+                            if (colConfig?.type === 'text') defaultValue = '';
+                            if (colConfig?.type === 'select') defaultValue = (colConfig.options || [])[0] || '';
+
+                            const path = key.split('.').slice(0, -1).join('.');
+                            const finalKey = key.split('.').pop();
+                            const target = path ? (getNestedValue(item, path) || setNestedValue(item, path, {})) : item;
+                            target[finalKey] = defaultValue;
+                        }
+                    });
+                });
+                return newData;
+            });
+        }
+    }, [headerConfig]);
+
+    const currentTableData = useMemo(() => {
+        if (focusLevel === 'owner') return ALL_OWNERS_WITH_CONTEXT;
+        if (focusLevel === 'unit') return ALL_UNITS_WITH_CONTEXT;
+        if (focusLevel === 'building') return ALL_BUILDINGS_WITH_CONTEXT;
+        if (focusLevel === 'project') return PROJECT_WITH_CONTEXT;
+        return [];
+    }, [focusLevel, data, ALL_OWNERS_WITH_CONTEXT, ALL_UNITS_WITH_CONTEXT, ALL_BUILDINGS_WITH_CONTEXT, PROJECT_WITH_CONTEXT]);
+
+    const sortedAndFilteredData = useMemo(() => {
+        let processedData = [...currentTableData];
+
+        if (searchTerm) {
+            processedData = processedData.filter(item => {
+                const normalizedSearch = searchTerm.toLowerCase();
+                return Object.values(item).some(val => 
+                    String(val).toLowerCase().includes(normalizedSearch)
+                ) || (item.identification && Object.values(item.identification).some(val => String(val).toLowerCase().includes(normalizedSearch)));
+            });
+        }
+
+        if (sortConfig !== null) {
+            processedData.sort((a, b) => {
+                const valA = getNestedValue(a, sortConfig.key);
+                const valB = getNestedValue(b, sortConfig.key);
+                const dir = sortConfig.direction === 'ascending' ? 1 : -1;
+
+                if (valA == null) return 1 * dir;
+                if (valB == null) return -1 * dir;
+
+                if (typeof valA === 'string') {
+                    return valA.localeCompare(valB, 'he') * dir;
+                }
+                if (typeof valA === 'number') {
+                    return (valA - valB) * dir;
+                }
+                return 0;
+            });
+        }
+        return processedData;
+    }, [currentTableData, searchTerm, sortConfig, focusLevel]);
+
+    const requestSort = (key, type) => {
+        let direction = 'ascending';
+        if (sortConfig?.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction, type });
+    };
+
+    const getSortIcon = (key) => {
+        if (sortConfig?.key !== key) return ICONS.sort;
+        return sortConfig.direction === 'ascending' ? ICONS.sortAsc : ICONS.sortDesc;
+    }
+
+    const kpis = useMemo(() => {
+        const allUnitsInBuildings = data.buildings.flatMap(b => b.units);
+        const allUnitsWithUnassigned = [...allUnitsInBuildings, ...(data.unassignedUnits || [])];
+
+        const allOwnersInBuildings = allUnitsInBuildings.flatMap(u => u.owners);
+        const allOwnersWithUnassigned = [...allOwnersInBuildings, ...(data.unassignedOwners || [])];
+
+        const totalOwners = new Set(allOwnersWithUnassigned.map(o => o.idNumber)).size;
+
+        const allOwnersForIcons = allOwnersWithUnassigned.map(o => ({ 
+            id: o.id, 
+            tooltip: `${o.name} (ת.ז. ${o.idNumber})`, 
+            type: 'owner',
+            status: getCalculatedSignatureStatus(o)
+        }));
+        const allUnitsForIcons = allUnitsWithUnassigned.map(u => ({ id: u.id, tooltip: u.identification.fullAddress, type: 'unit' }));
+        const allBuildingsForIcons = data.buildings.map(b => ({ id: b.id, tooltip: b.name, type: 'building' }));
+
+        return {
+            totalOwners,
+            totalUnits: allUnitsWithUnassigned.length,
+            totalBuildings: data.buildings.length,
+            allOwnersForIcons,
+            allUnitsForIcons,
+            allBuildingsForIcons,
+        };
+    }, [data]);
+
+    const handleAddRow = () => {
+        setData(prevData => {
+            const newData = JSON.parse(JSON.stringify(prevData));
+            if (focusLevel === 'owner') {
+                const newOwner = createOwnerData(null, { name: "בעלים חדש" });
+                if (!newData.unassignedOwners) newData.unassignedOwners = [];
+                newData.unassignedOwners.push(newOwner);
+                logActivity('created', 'owner', newOwner.id);
+                addNotification(`נוסף בעלים חדש: ${newOwner.name}`);
+            } else if (focusLevel === 'unit') {
+                const allSubplots = [...newData.buildings.flatMap(b => b.units.map(u => u.subplot)), ...(newData.unassignedUnits || []).map(u => u.subplot)];
+                const maxSubplot = Math.max(0, ...allSubplots.filter(s => s));
+                const newUnit = {
+                    id: `U${Date.now()}`,
+                    subplot: maxSubplot + 1,
+                    propertyType: 'דירת מגורים',
+                    identification: { fullAddress: `יחידה חדשה ${maxSubplot + 1}` },
+                    physical: {},
+                    legal: { commonPropertyPercentage: 0 },
+                    status: {},
+                    requiredDocuments: {},
+                    owners: []
+                };
+                if (!newData.unassignedUnits) newData.unassignedUnits = [];
+                newData.unassignedUnits.push(newUnit);
+                logActivity('created', 'unit', `Unit ${maxSubplot + 1}`);
+                addNotification(`נוספה יחידה חדשה: ${newUnit.identification.fullAddress}`);
+            } else if (focusLevel === 'building') {
+                const newId = `B${Date.now()}`;
+                const newBuilding = {
+                    id: newId,
+                    name: `בניין חדש ${newData.buildings.length + 1}`,
+                    gush: '00000',
+                    helka: '000',
+                    units: [],
+                    buildingType: 'מגורים',
+                    constructionStatus: 'not-started',
+                    physicalCharacteristics: { age: 0, numFloors: 0, numEntrances: 1 },
+                    condominiumInfo: { activeResidentsCommittee: { exists: false } }
+                };
+                newData.buildings.push(newBuilding);
+                logActivity('created', 'building', newId);
+                addNotification(`נוסף בניין חדש: ${newBuilding.name}`);
+            }
+            return newData;
+        });
+    };
+
+    // NEW: Delete handler to open confirmation
+    const handleDeleteRow = (item, level) => {
+        setConfirmation({
+            isOpen: true,
+            title: `מחיקת ${focusLevel === 'owner' ? 'בעלים' : focusLevel === 'unit' ? 'יחידה' : 'בניין'}`,
+            message: `האם אתה בטוח שברצונך למחוק את '${item.name || item.id}'? פעולה זו אינה הפיכה.`,
+            onConfirm: () => confirmDelete(item, level),
+        });
+    };
+
+    // NEW: Actual deletion logic
+    const confirmDelete = (item, level) => {
+        setData(prevData => {
+            let newData = JSON.parse(JSON.stringify(prevData));
+            if (level === 'owner') {
+                let found = false;
+                newData.buildings.forEach(b => {
+                    b.units.forEach(u => {
+                        const index = u.owners.findIndex(o => o.id === item.id);
+                        if (index > -1) {
+                            u.owners.splice(index, 1);
+                            found = true;
+                        }
+                    });
+                });
+                if (!found && newData.unassignedOwners) {
+                     const index = newData.unassignedOwners.findIndex(o => o.id === item.id);
+                     if (index > -1) newData.unassignedOwners.splice(index, 1);
+                }
+            } else if (level === 'unit') {
+                 newData.buildings.forEach(b => {
+                     const index = b.units.findIndex(u => u.id === item.id);
+                     if (index > -1) b.units.splice(index, 1);
+                 });
+                 if (newData.unassignedUnits) {
+                     const index = newData.unassignedUnits.findIndex(u => u.id === item.id);
+                     if (index > -1) newData.unassignedUnits.splice(index, 1);
+                 }
+            } else if (level === 'building') {
+                 const index = newData.buildings.findIndex(b => b.id === item.id);
+                 if (index > -1) {
+                     const [removedBuilding] = newData.buildings.splice(index, 1);
+                     // Move units from deleted building to unassigned
+                     if (!newData.unassignedUnits) newData.unassignedUnits = [];
+                     newData.unassignedUnits.push(...removedBuilding.units);
+                 }
+            }
+            logActivity('deleted', level, item.name || item.id);
+            addNotification(`'${item.name || item.id}' נמחק בהצלחה.`);
+            return newData;
+        });
+        setConfirmation({ isOpen: false }); // Close modal after action
+    };
+
+    const assignUnitToBuilding = (unitId, buildingId) => {
+        setData(prevData => {
+            const newData = JSON.parse(JSON.stringify(prevData));
+            const unitIndex = (newData.unassignedUnits || []).findIndex(u => u.id === unitId);
+            if (unitIndex === -1) return prevData;
+
+            const [unitToAssign] = newData.unassignedUnits.splice(unitIndex, 1);
+            const targetBuilding = newData.buildings.find(b => b.id === buildingId);
+            if (targetBuilding) {
+                targetBuilding.units.push(unitToAssign);
+            }
+            logActivity('updated', 'building', `Assigned unit ${unitId} to building ${buildingId}`);
+            addNotification(`שויכה יחידה ${unitId} לבניין ${buildingId}`);
+            return newData;
+        });
+    };
+
+    const unassignUnitFromBuilding = (unitId, buildingId) => {
+        setData(prevData => {
+            const newData = JSON.parse(JSON.stringify(prevData));
+            const sourceBuilding = newData.buildings.find(b => b.id === buildingId);
+            if (!sourceBuilding) return prevData;
+
+            const unitIndex = sourceBuilding.units.findIndex(u => u.id === unitId);
+            if (unitIndex === -1) return prevData;
+
+            const [unitToUnassign] = sourceBuilding.units.splice(unitIndex, 1);
+            if (!newData.unassignedUnits) newData.unassignedUnits = [];
+            newData.unassignedUnits.push(unitToUnassign);
+            logActivity('updated', 'building', `Unassigned unit ${unitId} from building ${buildingId}`);
+            addNotification(`בוטל שיוך יחידה ${unitId} מבניין ${buildingId}`);
+            return newData;
+        });
+    };
+
+    const handleExport = () => {
+        const csv = unparseCsv(currentTableData);
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${focusLevel}_data.csv`;
+        link.click();
+        addNotification('נתונים יוצאו בהצלחה');
+    };
+
+    const handleImport = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const csvString = event.target.result;
+            const importedData = parseCsv(csvString);
+
+            setData(prevData => {
+                const newData = JSON.parse(JSON.stringify(prevData));
+
+                if (focusLevel === 'owner') {
+                    importedData.forEach(importedOwner => {
+                        let ownerFound = false;
+                        for (const b of newData.buildings) {
+                            for (const u of b.units) {
+                                const ownerIndex = u.owners.findIndex(o => o.idNumber === importedOwner.idNumber);
+                                if (ownerIndex > -1) {
+                                    u.owners[ownerIndex] = deepMerge(u.owners[ownerIndex], importedOwner);
+                                    ownerFound = true;
+                                    break;
+                                }
+                            }
+                            if (ownerFound) break;
+                        }
+                        if (!ownerFound && newData.unassignedOwners) {
+                            const ownerIndex = newData.unassignedOwners.findIndex(o => o.idNumber === importedOwner.idNumber);
+                            if (ownerIndex > -1) {
+                                newData.unassignedOwners[ownerIndex] = deepMerge(newData.unassignedOwners[ownerIndex], importedOwner);
+                                ownerFound = true;
+                            }
+                        }
+                        if (!ownerFound) {
+                            if (!newData.unassignedOwners) newData.unassignedOwners = [];
+                            newData.unassignedOwners.push(createOwnerData(null, importedOwner));
+                        }
+                    });
+                }
+                // TODO: Implement import logic for other focus levels
+                return newData;
+            });
+            addNotification('ייבוא נתונים הושלם');
+        };
+        reader.readAsText(file);
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-right transition-colors duration-500" dir="rtl">
+            <DetailModal
+                item={selectedItem}
+                itemType={selectedItemType}
+                onClose={() => setSelectedItem(null)}
+                onUpdate={updateData}
+                unassignedUnits={data.unassignedUnits || []}
+                onAssignUnit={assignUnitToBuilding}
+                onUnassignUnit={unassignUnitFromBuilding}
+            />
+            <ActivityLogModal isOpen={showActivityLog} onClose={() => setShowActivityLog(false)} />
+            <ColumnManagerModal
+                isOpen={showColumnManager}
+                onClose={() => setShowColumnManager(false)}
+                headerConfig={headerConfig}
+                focusLevel={focusLevel}
+                onUpdateConfigAndData={handleConfigAndUpdateData}
+            />
+            {/* NEW: Replaced AssignmentManagerModal with StrategicDashboardModal */}
+            <StrategicDashboardModal
+                isOpen={showStrategyDashboard}
+                onClose={() => setShowStrategyDashboard(false)}
+                data={data}
+                onApplyChanges={setData}
+                allOwners={ALL_OWNERS_WITH_CONTEXT}
+                addNotification={addNotification}
+            />
+
+            <NotificationsPanel notifications={notifications} />
+             {/* NEW: Render confirmation modal */}
+            <ConfirmationModal 
+                isOpen={confirmation.isOpen}
+                onClose={() => setConfirmation({ isOpen: false })}
+                onConfirm={confirmation.onConfirm}
+                title={confirmation.title}
+                message={confirmation.message}
+            />
+
+
+            <div className="mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                <header className="relative text-center mb-8">
+                    <div className="absolute top-0 right-0 flex gap-2">
+                        <button
+                            onClick={() => setShowActivityLog(true)}
+                            title="יומן פעילות"
+                            className="p-2.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                        >
+                            <Icon path={ICONS.history} />
+                        </button>
+                        <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+                    </div>
+                    <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 tracking-tight">
+                        מערכת ניהול פרויקטים
+                    </h1>
+                    <p className="mt-3 text-lg text-slate-600 dark:text-slate-300">ניהול מתקדם לפרויקטי התחדשות עירונית</p>
+                </header>
+
+                <FocusNavigation focusLevel={focusLevel} setFocusLevel={setFocusLevel} />
+
+                <main className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <SummaryCard
+                            label="בעלי זכויות"
+                            value={kpis.totalOwners}
+                            items={kpis.allOwnersForIcons}
+                            iconPath={ICONS.users}
+                            iconColorClass={{ bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-600 dark:text-blue-400' }}
+                            type="owner"
+                        />
+                        <SummaryCard
+                            label="יחידות"
+                            value={kpis.totalUnits}
+                             items={kpis.allUnitsForIcons}
+                            iconPath={ICONS.unit}
+                            iconColorClass={{ bg: 'bg-yellow-100 dark:bg-yellow-900/50', text: 'text-yellow-600 dark:text-yellow-400' }}
+                             type="unit"
+                        />
+                        <SummaryCard
+                            label="בניינים"
+                            value={kpis.totalBuildings}
+                             items={kpis.allBuildingsForIcons}
+                            iconPath={ICONS.building}
+                            iconColorClass={{ bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-600 dark:text-green-400' }}
+                             type="building"
+                        />
+                        <SummaryCard
+                            label="שם פרויקט"
+                            value={data.projectName}
+                            iconPath={ICONS.project}
+                            iconColorClass={{ bg: 'bg-indigo-100 dark:bg-indigo-900/50', text: 'text-indigo-600 dark:text-indigo-400' }}
+                        />
+                    </div>
+
+                    {/* NEW: Replaced LegalStatusDashboard with a button to open the new strategic modal */}
+                    <div className="bg-white/70 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-700/60 rounded-xl shadow-md p-6 text-center">
+                        <Icon path={ICONS.strategy} className="w-12 h-12 mx-auto text-indigo-500" />
+                        <h3 className="mt-2 text-xl font-bold text-slate-800 dark:text-slate-200">מרכז התכנון האסטרטגי</h3>
+                        <p className="mt-1 text-slate-600 dark:text-slate-400">נתח תרחישי רוב מיוחס, בצע שיוכים וקבל החלטות מבוססות נתונים במקום אחד.</p>
+                        <button 
+                            onClick={() => setShowStrategyDashboard(true)}
+                            className="mt-4 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                        >
+                            פתח את סדנת התכנון
+                        </button>
+                    </div>
+
+
+                    <SearchAndFilters
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        onShowColumnManager={() => setShowColumnManager(true)}
+                        onExport={handleExport}
+                        onImport={handleImport}
+                    />
+
+                    <DataTable
+                        focusLevel={focusLevel}
+                        sortedAndFilteredData={sortedAndFilteredData}
+                        headerConfig={headerConfig}
+                        requestSort={requestSort}
+                        getSortIcon={getSortIcon}
+                        setSelectedItem={setSelectedItem}
+                        setSelectedItemType={setSelectedItemType}
+                        updateData={updateData}
+                        handleDeleteRow={handleDeleteRow}
+                    />
+                </main>
+            </div>
+            <QuickActions onAddRow={handleAddRow} onShowStrategyDashboard={() => setShowStrategyDashboard(true)} />
+        </div>
+    );
+}
